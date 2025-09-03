@@ -1,4 +1,4 @@
-﻿define([
+define([
     "dojo",
     "dojo/_base/declare",
     "epi/_Module",
@@ -7,7 +7,8 @@
     "dojo/request",
     "epi/shell/_ContextMixin",
     "dojo/when",
-    "siteimprove/SiteimproveCommandProvider"
+    "siteimprove/SiteimproveCommandProvider",
+    "dojo/_base/lang"
 ], function (
     dojo,
     declare,
@@ -17,11 +18,17 @@
     request,
     _ContextMixin,
     when,
-    SiteimproveCommandProvider
+    SiteimproveCommandProvider,
+    lang
 ) {
         return declare([_ContextMixin], {
             isPublishing: false,
             isInitialized: false,
+            _token: null,
+            _tokenExpiry: null,
+            _tokenRetryCount: 0,
+            _maxTokenRetries: 3,
+            _tokenRequestInProgress: false,
             constructor: function () {
                 var scope = this;
                 when(scope.getCurrentContext(),
@@ -127,31 +134,122 @@
             /**
              * Request token from backoffice and sends request to SiteImprove
              */
-            pushSi: function (method, url, callback) {
+            /**
+             * Request token from backoffice and sends request to SiteImprove
+             * @param {string} method - The method to call on the SiteImprove object
+             * @param {string} url - The URL to pass to the method
+             * @param {Function} callback - Callback function to execute after the method call
+             * @param {boolean} isRetry - Internal flag to indicate if this is a retry attempt
+             */
+            pushSi: function (method, url, callback, isRetry) {
                 var si = window._si || [];
+                var scope = this;
 
-                if (method === 'clear') { //special case, does not ask for token
+                // Special case - doesn't require a token
+                if (method === 'clear') {
                     si.push([
-                        method, function () {
-                            //console.log('SiteImprove pass: ' + method + (callback ? " with callback" : ""));
+                        method, 
+                        function () {
                             if (callback) {
                                 callback();
                             }
                         }
                     ]);
-                } else {
-                    request.get(window.epi.routes.getActionPath({ moduleArea: "SiteImprove.Optimizely.Plugin", controller: "Siteimprove", action: "token" }), { handleAs: 'json' })
-                        .then(function (response) {
-                            // relay to SiteImprove
-                            si.push([
-                                method, url, response, function () {
-                                    //console.log('SiteImprove pass: ' + method + ' - ' + url + (callback ? " with callback" : ""));
-                                    if (callback) {
-                                        callback();
-                                    }
-                                }
-                            ]);
-                        }.bind(this));
+                    return;
+                }
+
+                // Check if we have a valid cached token
+                if (this._token && this._tokenExpiry && this._tokenExpiry > new Date().getTime()) {
+                    this._executeSiCall(si, method, url, callback, this._token);
+                    return;
+                }
+
+                // Prevent multiple concurrent token requests
+                if (this._tokenRequestInProgress) {
+                    setTimeout(function() {
+                        scope.pushSi(method, url, callback);
+                    }, 500);
+                    return;
+                }
+
+                // Reset retry counter if not a retry
+                if (!isRetry) {
+                    this._tokenRetryCount = 0;
+                }
+
+                // If we've exceeded max retries, give up silently for non-critical operations
+                if (this._tokenRetryCount >= this._maxTokenRetries) {
+                    console.warn('Max token retries reached. Operation skipped.');
+                    if (callback) callback();
+                    return;
+                }
+
+                // Request a new token
+                this._tokenRequestInProgress = true;
+                request.get(window.epi.routes.getActionPath({ 
+                    moduleArea: "SiteImprove.Optimizely.Plugin", 
+                    controller: "Siteimprove", 
+                    action: "token" 
+                }), { 
+                    handleAs: 'json',
+                    headers: {
+                        'X-Requested-With': null // Prevent auth redirects
+                    }
+                })
+                .then(function (response) {
+                    scope._tokenRequestInProgress = false;
+                    scope._tokenRetryCount = 0;
+                    
+                    // Cache the token with a 1-hour expiry
+                    scope._token = response;
+                    scope._tokenExpiry = new Date().getTime() + (60 * 60 * 1000);
+                    
+                    // Execute the original call with the new token
+                    scope._executeSiCall(si, method, url, callback, response);
+                })
+                .otherwise(function(error) {
+                    scope._tokenRequestInProgress = false;
+                    scope._token = null;
+                    scope._tokenExpiry = null;
+                    
+                    // Only show login prompt for critical operations
+                    if (method === 'recheck' || method === 'input') {
+                        scope._tokenRetryCount++;
+                        if (scope._tokenRetryCount < scope._maxTokenRetries) {
+                            // Retry with exponential backoff
+                            setTimeout(function() {
+                                scope.pushSi(method, url, callback, true);
+                            }, 1000 * Math.pow(2, scope._tokenRetryCount));
+                        } else {
+                            console.error('Failed to get token after multiple attempts:', error);
+                            if (callback) callback();
+                        }
+                    } else {
+                        // For non-critical operations, just skip if we can't get a token
+                        if (callback) callback();
+                    }
+                });
+            },
+
+            /**
+             * Execute the SiteImprove call with the provided token
+             * @private
+             */
+            _executeSiCall: function(si, method, url, callback, token) {
+                try {
+                    si.push([
+                        method, 
+                        url, 
+                        token, 
+                        function() {
+                            if (callback) {
+                                callback();
+                            }
+                        }
+                    ]);
+                } catch (e) {
+                    console.error('Error executing SiteImprove call:', e);
+                    if (callback) callback();
                 }
             },
 
