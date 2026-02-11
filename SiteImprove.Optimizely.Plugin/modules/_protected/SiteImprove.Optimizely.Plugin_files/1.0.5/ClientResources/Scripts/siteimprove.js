@@ -7,7 +7,6 @@
     "dojo/request",
     "epi/shell/_ContextMixin",
     "dojo/when",
-    "siteimprove/SiteimproveCommandProvider"
 ], function (
     dojo,
     declare,
@@ -17,7 +16,6 @@
     request,
     _ContextMixin,
     when,
-    SiteimproveCommandProvider
 ) {
         return declare([_ContextMixin], {
             isPublishing: false,
@@ -40,10 +38,18 @@
                         topic.subscribe('epi/shell/context/request', this.contextChange.bind(this));
                         topic.subscribe('/epi/cms/content/statuschange/', this.statusChange.bind(this));
 
-                        var commandRegistry = dependency.resolve("epi.globalcommandregistry");
-                        if (commandRegistry) {
-                            commandRegistry.registerProvider("epi.cms.globalToolbar", new SiteimproveCommandProvider());
-                        }
+                        var previewIframe = document.querySelector('iframe[name="sitePreview"]')
+                        var dom = previewIframe.contentWindow.document;
+                        var si = window._si || [];
+
+                        si.push([
+                            'onHighlight',
+                            function (highlightInfo) {
+                                si.push(['applyDefaultHighlighting', highlightInfo, dom])
+                            },
+                        ])
+
+                        si.push('registerPrepublishCallback', () => dom)
                         
                     }.bind(this));
             },
@@ -86,24 +92,11 @@
             contextChange: function (content, ctx) {
                 var scope = this;
 
-                if (!this.isPublishOrViewContext(content, ctx)) {
-                    scope.pushSi("domain", "", function () { //we have to to reset domain, as SiteImprove plugin caches calls
-                        scope.pushSi("clear"); //We don't have the domain or current page - we are probably in trash or root
-                    });
-                    return;
-                }
-                //if(ctx.sender.isSaving) return; //We are in middle of an edit
-
-
                 this.getPageUrl(content.id, content.language)
                     .then(function (response) {
-                        if (scope.isPublishing) {
-                            scope.pushSi("recheck", response.url);
-                            scope.isPublishing = false;
-                        }
-                        else {
-                            scope.pushSi(response.isDomain ? "domain" : "input", response.url);
-                        }
+                        
+                        scope.pushSi("input", response.url);
+                        
                     }, function (error) {
                         scope.pushSi('input', '');
                     });

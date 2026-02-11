@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Copyright>Copyright © SiteImprove 2024</Copyright>
@@ -11,12 +11,12 @@
     <PackageProjectUrl>https://github.com/Siteimprove/CMS-plugin-Optimizely</PackageProjectUrl>
     <PackageIcon>icon.png</PackageIcon>
     <Description>Optimizely plugin from SiteImprove</Description>
-    <Version>4.3.1</Version>
+    <Version>4.3.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="images\icon.png" Pack="true" PackagePath="\" />
-    <None Include="SiteImprove.Optimizely.Plugin.targets" Pack="true" PackagePath="\build\net5.0\" />
+    <None Include="SiteImprove.Optimizely.Plugin.targets" Pack="true" PackagePath="\build\net6.0\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,18 +24,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="modules\_protected\SiteImprove.Optimizely.Plugin\SiteImprove.Optimizely.Plugin.zip">
+    <Content
+      Include="modules\_protected\SiteImprove.Optimizely.Plugin\SiteImprove.Optimizely.Plugin.zip">
       <PackageCopyToOutput>true</PackageCopyToOutput>
-	</Content>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <Content Remove="modules\_protected\SiteImprove.Optimizely.Plugin_files\**\*" />
-  </ItemGroup> 
+  </ItemGroup>
 
   <Target Name="ZipPluginContent" AfterTargets="BeforeBuild">
     <Message Text="Zipping module" />
-    <ZipDirectory Overwrite="true" SourceDirectory="modules\_protected\SiteImprove.Optimizely.Plugin_files" DestinationFile="modules\_protected\SiteImprove.Optimizely.Plugin\SiteImprove.Optimizely.Plugin.zip" />
+    <ZipDirectory Overwrite="true"
+      SourceDirectory="modules\_protected\SiteImprove.Optimizely.Plugin_files"
+      DestinationFile="modules\_protected\SiteImprove.Optimizely.Plugin\SiteImprove.Optimizely.Plugin.zip" />
   </Target>
 
 </Project>
