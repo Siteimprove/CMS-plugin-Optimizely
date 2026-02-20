@@ -6,4 +6,4 @@ Date / Plugin Version / Changes made since last version
 2022-09-02 / 4.1.1 / Prepublish error handling and domain mapping
 2023-03-09 / 4.2.1 / Add version number on admin page, update form action url to be more resilient
 2025-09-03 / 4.3.1 / Update icons for Siteimprove rebranding
-2026-02-09 / 4.3.2 / Removed toolbar button in favor of integrated button in side panel, fixed bug where publishing while logged out would always open the login popup.
+2026-02-09 / 4.3.2 / Removed toolbar button in favor of integrated button in side panel, fixed bug where publishing while logged out would always open the login popup, and fixed intermittent error when registering highlighting and prepublish callbacks
