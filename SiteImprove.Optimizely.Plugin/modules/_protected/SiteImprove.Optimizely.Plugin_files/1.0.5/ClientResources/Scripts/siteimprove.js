@@ -38,7 +38,9 @@
                         topic.subscribe('epi/shell/context/request', this.contextChange.bind(this));
                         topic.subscribe('/epi/cms/content/statuschange/', this.statusChange.bind(this));
 
-                        this.waitForPreviewIFrame(function (dom) {
+                        this.waitForPreviewIFrame(function (iFrameContentWindow) {
+                            const dom = iFrameContentWindow?.document;
+                            if (!dom) return;
                             var si = window._si || [];                                            
 
                             si.push([
@@ -57,17 +59,16 @@
              * Will try for a certain amount of attempts before giving up.
              */
             waitForPreviewIFrame: function (callback, attempt = 0) {
-                const maxAttempts = 10;
-
+                const maxAttempts = 10;                
+                
                 const previewIFrame = document.querySelector('iframe[name="sitePreview"]');
                 if (previewIFrame && previewIFrame.contentWindow) {
-                    const dom = previewIFrame.contentWindow.document;
-                    callback(dom);
+                    callback(previewIFrame.contentWindow);
                 } else if (attempt < maxAttempts) {
                     setTimeout(() => {
                         this.waitForPreviewIFrame(callback, attempt + 1);
                     }, 1000);
-                }
+                }                
             },
             /**
              * Event for shell updates. Gets current context. Should only be called one to initialize the _si plugin.
