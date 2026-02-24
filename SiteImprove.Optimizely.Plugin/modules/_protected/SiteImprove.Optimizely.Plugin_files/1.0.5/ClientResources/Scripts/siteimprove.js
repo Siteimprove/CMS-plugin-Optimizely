@@ -58,17 +58,18 @@
              * Waits for the preview iframe to be available, then executes the callback with the iframe's document as parameter.
              * Will try for a certain amount of attempts before giving up.
              */
-            waitForPreviewIFrame: function (callback, attempt = 0) {
+            waitForPreviewIFrame: async function (callback) {
                 const maxAttempts = 10;                
                 
-                const previewIFrame = document.querySelector('iframe[name="sitePreview"]');
-                if (previewIFrame && previewIFrame.contentWindow) {
-                    callback(previewIFrame.contentWindow);
-                } else if (attempt < maxAttempts) {
-                    setTimeout(() => {
-                        this.waitForPreviewIFrame(callback, attempt + 1);
-                    }, 1000);
-                }                
+                for (let i = 0; i < maxAttempts; i++) {
+                    const previewIFrame = document.querySelector('iframe[name="sitePreview"]');
+                    if (previewIFrame && previewIFrame.contentWindow) {
+                        callback(previewIFrame.contentWindow);
+                        return;
+                    } else if (i < maxAttempts - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // wait 1 second before trying again
+                    }      
+                }                          
             },
             /**
              * Event for shell updates. Gets current context. Should only be called one to initialize the _si plugin.
