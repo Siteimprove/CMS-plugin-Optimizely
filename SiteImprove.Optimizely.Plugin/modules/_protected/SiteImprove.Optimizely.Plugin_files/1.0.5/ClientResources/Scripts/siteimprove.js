@@ -38,22 +38,39 @@
                         topic.subscribe('epi/shell/context/request', this.contextChange.bind(this));
                         topic.subscribe('/epi/cms/content/statuschange/', this.statusChange.bind(this));
 
-                        var previewIframe = document.querySelector('iframe[name="sitePreview"]')
-                        var dom = previewIframe.contentWindow.document;
-                        var si = window._si || [];
+                        this.waitForPreviewIFrame(function (iFrameContentWindow) {
+                            const dom = iFrameContentWindow?.document;
+                            if (!dom) return;
+                            var si = window._si || [];                                            
 
-                        si.push([
-                            'onHighlight',
-                            function (highlightInfo) {
-                                si.push(['applyDefaultHighlighting', highlightInfo, dom])
-                            },
-                        ])
+                            si.push([
+                                'onHighlight',
+                                function (highlightInfo) {
+                                    si.push(['applyDefaultHighlighting', highlightInfo, dom]);
+                                },
+                            ]);
 
-                        si.push('registerPrepublishCallback', () => dom)
-                        
-                    }.bind(this));
+                            si.push(['registerPrepublishCallback', () => dom]);
+                        });                                            
+                    }.bind(this));                    
             },
-
+            /**
+             * Waits for the preview iframe to be available, then executes the callback with the iframe's document as parameter.
+             * Will try for a certain amount of attempts before giving up.
+             */
+            waitForPreviewIFrame: async function (callback) {
+                const maxAttempts = 10;                
+                
+                for (let i = 0; i < maxAttempts; i++) {
+                    const previewIFrame = document.querySelector('iframe[name="sitePreview"]');
+                    if (previewIFrame && previewIFrame.contentWindow) {
+                        callback(previewIFrame.contentWindow);
+                        return;
+                    } else if (i < maxAttempts - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // wait 1 second before trying again
+                    }      
+                }                          
+            },
             /**
              * Event for shell updates. Gets current context. Should only be called one to initialize the _si plugin.
              */
