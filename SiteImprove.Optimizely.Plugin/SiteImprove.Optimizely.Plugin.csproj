@@ -11,7 +11,7 @@
     <PackageProjectUrl>https://github.com/Siteimprove/CMS-plugin-Optimizely</PackageProjectUrl>
     <PackageIcon>icon.png</PackageIcon>
     <Description>Optimizely plugin from SiteImprove</Description>
-    <Version>4.3.2</Version>
+    <Version>4.3.3</Version>
   </PropertyGroup>
 
   <ItemGroup>
