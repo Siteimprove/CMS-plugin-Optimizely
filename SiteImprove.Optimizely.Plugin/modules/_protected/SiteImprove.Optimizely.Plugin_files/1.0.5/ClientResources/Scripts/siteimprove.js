@@ -38,38 +38,29 @@
                         topic.subscribe('epi/shell/context/request', this.contextChange.bind(this));
                         topic.subscribe('/epi/cms/content/statuschange/', this.statusChange.bind(this));
 
-                        this.waitForPreviewIFrame(function (iFrameContentWindow) {
-                            const dom = iFrameContentWindow?.document;
-                            if (!dom) return;
-                            var si = window._si || [];                                            
+                        var si = window._si || [];
+                        var getPreviewDom = this.getPreviewDom;
 
-                            si.push([
-                                'onHighlight',
-                                function (highlightInfo) {
+                        si.push([
+                            'onHighlight',
+                            function (highlightInfo) {
+                                var dom = getPreviewDom();
+                                if (dom) {
                                     si.push(['applyDefaultHighlighting', highlightInfo, dom]);
-                                },
-                            ]);
+                                }
+                            },
+                        ]);
 
-                            si.push(['registerPrepublishCallback', () => dom]);
-                        });                                            
-                    }.bind(this));                    
+                        si.push(['registerPrepublishCallback', getPreviewDom]);
+                    }.bind(this));
             },
             /**
-             * Waits for the preview iframe to be available, then executes the callback with the iframe's document as parameter.
-             * Will try for a certain amount of attempts before giving up.
+             * Resolves the preview iframe's document at call time. The iframe's document is
+             * replaced on every in-CMS navigation, so it must never be cached.
              */
-            waitForPreviewIFrame: async function (callback) {
-                const maxAttempts = 10;                
-                
-                for (let i = 0; i < maxAttempts; i++) {
-                    const previewIFrame = document.querySelector('iframe[name="sitePreview"]');
-                    if (previewIFrame && previewIFrame.contentWindow) {
-                        callback(previewIFrame.contentWindow);
-                        return;
-                    } else if (i < maxAttempts - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 1000)); // wait 1 second before trying again
-                    }      
-                }                          
+            getPreviewDom: function () {
+                var previewIFrame = document.querySelector('iframe[name="sitePreview"]');
+                return previewIFrame && previewIFrame.contentWindow ? previewIFrame.contentWindow.document : null;
             },
             /**
              * Event for shell updates. Gets current context. Should only be called one to initialize the _si plugin.
