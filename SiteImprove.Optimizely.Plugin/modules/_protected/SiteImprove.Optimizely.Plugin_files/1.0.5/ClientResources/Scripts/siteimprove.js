@@ -98,6 +98,9 @@
              * Similar to contextCurrent. Used for pushing the input event.
              */
             contextChange: function (content, ctx) {
+                if (!content || !content.capabilities || !content.capabilities.isPage)
+                    return;
+
                 var scope = this;
 
                 this.getPageUrl(content.id, content.language)
