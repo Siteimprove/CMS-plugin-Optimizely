@@ -46,11 +46,11 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         public ActionResult PageUrl(string contentId, string locale)
         {
             var contentRep = ServiceLocator.Current.GetInstance<IContentRepository>();
-            var page = contentRep.Get<PageData>(
+            var content = contentRep.Get<IContent>(
                 new ContentReference(contentId),
                 new LanguageSelector(locale));
 
-            if (page != null)
+            if (content is PageData page)
             {
                 //if (page.CheckPublishedStatus(PagePublishedStatus.Published))
                 //{
