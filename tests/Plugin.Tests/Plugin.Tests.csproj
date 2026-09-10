@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="6.0.36" Condition="'$(TargetFramework)' == 'net6.0'" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="8.0.22" Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Moq" Version="4.16.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
+    <ProjectReference Include="../../SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj" />
+  </ItemGroup>
+</Project>
