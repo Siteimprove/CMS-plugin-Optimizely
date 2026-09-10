@@ -17,15 +17,17 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
         private bool _homeIsUnPublished = false;
         private IHttpContextAccessor _httpContextAccessor;
         private ISiteimproveHelper _siteimproveHelper;
+        private IContentEvents _contentEvents;
 
         public void Initialize(InitializationEngine context)
         {
+            Uninitialize(context);
             _settingsRepository = ServiceLocator.Current.GetInstance<ISettingsRepository>();
             _siteimproveHelper = ServiceLocator.Current.GetInstance<ISiteimproveHelper>();
             _httpContextAccessor = ServiceLocator.Current.GetInstance<IHttpContextAccessor>();
 
-            var contentEvents = ServiceLocator.Current.GetInstance<IContentEvents>();
-            contentEvents.PublishedContent += ContentEvents_PublishedContent;
+            _contentEvents = ServiceLocator.Current.GetInstance<IContentEvents>();
+            _contentEvents.PublishedContent += ContentEvents_PublishedContent;
         }
 
         private void ContentEvents_PublishedContent(object sender, ContentEventArgs e)
@@ -65,6 +67,12 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
 
         public void Uninitialize(InitializationEngine context)
         {
+            if (_contentEvents != null)
+            {
+                _contentEvents.PublishedContent -= ContentEvents_PublishedContent;
+                _contentEvents = null;
+            }
+            _homeIsUnPublished = false;
         }
     }
 }

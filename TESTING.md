@@ -14,7 +14,7 @@ dotnet restore tests/Plugin.Tests/Plugin.Tests.csproj --locked-mode
 dotnet test tests/Plugin.Tests/Plugin.Tests.csproj --configuration Release --no-restore -p:GeneratePackageOnBuild=false --logger 'trx;LogFilePrefix=backend' --results-directory test-results/backend
 ```
 
-The 28 backend cases run on both .NET 6 and .NET 8. The tests build and reference
+The 56 backend cases run on both .NET 6 and .NET 8. The tests build and reference
 the actual plugin project and locked Optimizely dependencies. They do not establish
 compatibility with every CMS 12 release. The plugin still targets .NET 6, which
 produces an end-of-support build warning; this PR does not change that target.
@@ -23,19 +23,22 @@ produces an end-of-support build warning; this PR does not change that target.
 | --- | --- |
 | Page URL controller | Revision and language; direct Block request returns HTTP 400 without a typed Page lookup. |
 | URL mapping | Host/scheme/port matching; preservation of page paths and query strings; independent sites and language paths; missing URLs/sites and resolver errors. |
-| Admin actions | Prepublish enablement success and failure. |
+| Settings | First save, update and reload; URL maps; token reuse; automatic/manual renewal; failed renewal preserves configuration; concurrent first requests generate one token; unavailable service does not create a blank record. |
+| Admin actions | Save inputs, valid and duplicate URL maps, empty mapping rows, and Prepublish enablement outcome. |
 | Authorization | Real ASP.NET middleware and production policy/controller attributes; all four configured roles; anonymous and unauthorized callers; protected reads and writes. |
-| Publish events | Recheck URL/token; disabled rechecks, Blocks, missing URLs and background events; start-page recrawl transition. |
+| Publish events | Recheck URL/token; disabled rechecks, Blocks, missing URLs and background events; start-page recrawl transition; shutdown/reinitialization avoid duplicate subscriptions. |
 | Overlay selection | Exactly one script matching the latest-interface setting. |
+| HTTP services | Token/version request; Prepublish status and enablement/authentication; recheck JSON; HTTP errors, malformed responses and network errors; unsuccessful rechecks logged as failures. |
 
-Optimizely content, URL/site resolution, settings access and outgoing service
-calls are test doubles. These checks do not exercise the settings repository,
-HTTP service implementation, database schema creation, SQL serialization or
-multi-server locking.
+Optimizely content, URL/site resolution and storage are test doubles. The real
+settings repository uses a store fixture that copies values on save/load, so
+assertions check persisted values instead of only a shared object. This does not
+test database schema creation, SQL serialization or multi-server locking.
 
 Authorization tests run in ASP.NET TestServer with a fixture authentication
 handler; production policies and controller attributes enforce access. This
-does not test actual CMS login or SSO.
+does not test actual CMS login or SSO. HTTP helper tests use an injected message
+handler and assert captured requests outside production exception handlers.
 
 ## Browser
 
@@ -94,14 +97,15 @@ Repository owners can require the two functional jobs in branch protection.
 
 ## Regression evidence and remaining acceptance
 
-This test-only change builds on the existing Block-context fix. Browser context
-regressions were verified against the code preceding that fix.
+The test infrastructure and original 28 backend cases are introduced in
+[PR #12](https://github.com/Siteimprove/CMS-plugin-Optimizely/pull/12).
+This follow-up adds 28 backend cases alongside the production fixes.
 
-Additional checks exposed configuration loss during token creation/renewal,
-missing first-save mappings, empty/non-web mapping inputs, publish-subscription
-cleanup, and successful logging of HTTP recheck failures. Production fixes and
-the tests for those paths are kept in a separate follow-up PR so this suite can
-pass independently against the existing plugin behavior.
+Before the fixes, nine backend checks failed on settings loss during token
+creation/renewal, missing first-save mappings, empty/non-web mapping inputs,
+publish-subscription cleanup, and successful logging of an HTTP recheck failure.
+Those assertions passed after the fixes. Browser context regressions were also
+verified against the code preceding the Block-context fix.
 
 Still validate installation/module loading in a real CMS, actual editor event
 timing, database persistence, and representative CMS configurations. A separate
