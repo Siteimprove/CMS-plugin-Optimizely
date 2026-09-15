@@ -35,7 +35,7 @@ export async function openLiveEditor(page, context) {
   const mapping = await page.request.get(`${plugin}/PageUrl?contentId=${contentId}&locale=en`);
   expect(mapping.ok()).toBe(true);
   expect((await mapping.json()).url).toBe(config.crawledUrl);
-  await page.goto(`/episerver/cms/#context=epi.cms.contentdata://${contentId}`);
+  await page.goto(`/episerver/cms/#context=epi.cms.contentdata:///${contentId}`);
   await expect(page.frameLocator('iframe[name="sitePreview"]').locator('h1')).toBeVisible();
 
   const [popup] = await Promise.all([

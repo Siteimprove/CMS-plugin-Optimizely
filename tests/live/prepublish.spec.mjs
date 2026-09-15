@@ -40,7 +40,7 @@ test('prepublish scans the current draft and removes the image issue after a per
     const response = await page.request.post('/test/live-draft/fix', { headers: { 'X-Cms-Test': 'prepublish' } });
     expect(response.ok()).toBe(true);
     const { contentId } = await response.json();
-    await page.goto(`/episerver/cms/#context=epi.cms.contentdata://${contentId}`);
+    await page.goto(`/episerver/cms/#context=epi.cms.contentdata:///${contentId}`);
     await expect(preview.locator('#live-test-marker')).toHaveText(fixedMarker);
     await expect(preview.locator('#live-test-image')).toHaveAttribute('alt', 'Blue square for the prepublish test');
     const panel = page.locator('iframe.si-iframe-element');
