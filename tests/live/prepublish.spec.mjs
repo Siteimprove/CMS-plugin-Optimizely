@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { openLiveEditor } from './editor.mjs';
 import { settings } from './settings.mjs';
 import { observeDraft } from './prepublish.mjs';
+import { imageAlternativeRule } from './accessibility-rule.mjs';
 
 async function scan(page, evidence, marker) {
   const overlay = page.frameLocator('iframe.si-iframe-element');
@@ -23,7 +24,7 @@ async function scan(page, evidence, marker) {
   });
 }
 
-test('prepublish hands off both saved draft revisions and exits the loading state', async ({ page, context }) => {
+test('prepublish detects WCAG 1.1.1 image alternative issue and clears it after a saved fix', async ({ page, context }) => {
   test.setTimeout(780_000);
   const config = settings(process.env);
   const marker = process.env.CMS_DRAFT_MARKER;
@@ -33,6 +34,7 @@ test('prepublish hands off both saved draft revisions and exits the loading stat
   await openLiveEditor(page, context);
   const preview = page.frameLocator('iframe[name="sitePreview"]');
   await expect(preview.locator('#live-test-marker')).toHaveText(marker);
+  await expect(preview.locator('img')).toHaveCount(1);
   expect(await preview.locator('#live-test-image').getAttribute('alt')).toBeNull();
   const publishedPath = new URL(config.crawledUrl).pathname;
   const published = await page.request.get(publishedPath);
@@ -40,6 +42,10 @@ test('prepublish hands off both saved draft revisions and exits the loading stat
   expect(await published.text()).not.toContain(marker);
   await test.step('fresh draft is handed to the SDK and leaves the running state', async () => {
     await scan(page, evidence, marker);
+    await test.step('live: WCAG 1.1.1 issue detected', async () => {
+      const overlay = page.frameLocator('iframe.si-iframe-element');
+      await expect(overlay.getByText(imageAlternativeRule.label, { exact: true })).toBeVisible();
+    });
   });
   await test.step('saved draft correction is handed to the SDK and leaves the running state', async () => {
     const response = await page.request.post('/test/live-draft/fix', { headers: { 'X-Cms-Test': 'prepublish' } });
@@ -52,11 +58,13 @@ test('prepublish hands off both saved draft revisions and exits the loading stat
     if (!await panel.isVisible()) await page.locator('.si-smallbox button.si-button').click();
     await expect(panel).toBeVisible();
     await scan(page, evidence, fixedMarker);
+    await test.step('live: WCAG 1.1.1 issue cleared', async () => {
+      const overlay = page.frameLocator('iframe.si-iframe-element');
+      // Require the results section to remain visible and reject an error alert.
+      await expect(overlay.getByText('Accessibility', { exact: true }).first()).toBeVisible();
+      await expect(overlay.getByRole('alert')).toHaveCount(0);
+      await expect(overlay.getByText(imageAlternativeRule.label, { exact: true })).toHaveCount(0);
+    });
     expect(await (await page.request.get(publishedPath)).text()).not.toContain(fixedMarker);
   });
-});
-
-// As in WordPress, loading-state exit alone does not establish scan-result correctness.
-test.skip('prepublish reports the missing image alternative and clears it after the fix', async () => {
-  // Restore this assertion after verifying the live result schema or UI mapping.
 });
