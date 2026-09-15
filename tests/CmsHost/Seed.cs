@@ -58,7 +58,7 @@ public static class Seed
             start.Heading = "First page";
             content.Save(start, SaveAction.Publish, AccessLevel.NoAccess);
         }
-        if (!content.GetChildren<StandardPage>(start.ContentLink).Any(p => p.Name == "Second page"))
+        if (!live && !content.GetChildren<StandardPage>(start.ContentLink).Any(p => p.Name == "Second page"))
         {
             var second = content.GetDefault<StandardPage>(start.ContentLink, CultureInfo.GetCultureInfo("en"));
             second.Name = "Second page";
