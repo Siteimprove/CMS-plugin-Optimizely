@@ -4,7 +4,6 @@ using System.Security.Principal;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.ServiceLocation;
-using EPiServer.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SiteImprove.Optimizely.Plugin.Helper;
@@ -48,20 +47,12 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
             var contentRep = ServiceLocator.Current.GetInstance<IContentRepository>();
             var content = contentRep.Get<IContent>(
                 new ContentReference(contentId),
-                new LanguageSelector(locale));
+                LanguageSelector.Fallback(locale, false));
 
             if (content is PageData page)
             {
-                //if (page.CheckPublishedStatus(PagePublishedStatus.Published))
-                //{
-                    var externalUrl = _siteimproveHelper.GetExternalUrl(page);
-                    return Json(new { url = externalUrl, isDomain = false });
-                //}
-                //else
-                //{
-                //    var currentSiteUrl = SiteDefinition.Current.SiteUrl.ToString();
-                //    return Json(new { url = currentSiteUrl, isDomain = true });
-                //}
+                var externalUrl = _siteimproveHelper.GetExternalUrl(page, locale);
+                return Json(new { url = externalUrl, isDomain = false });
             }
 
             return StatusCode((int)HttpStatusCode.BadRequest);
