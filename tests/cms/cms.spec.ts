@@ -64,8 +64,10 @@ test('configuration UI persists settings and prepublish status', async ({ page }
   await expect(page.locator('#LatestUI')).toBeChecked();
   await expect(page.locator('input[name="urlMap[0].value"]')).toHaveValue('https://public-test.example.invalid/');
   const enable = page.getByRole('button', { name: 'Enable pre-publish check', exact: true });
-  if (await enable.count()) await enable.click();
-  await expect(page.getByText('Enabled', { exact: true })).toBeVisible();
+  await expect(enable).toBeVisible();
+  await enable.click();
+  await expect(page.getByText('Pre-publish check', { exact: true }).locator('..'))
+    .toHaveText(/Pre-publish check\s*Enabled/);
 });
 
 test('installed module loads, changes page context, and supplies the current preview', async ({ page, evidence }) => {
