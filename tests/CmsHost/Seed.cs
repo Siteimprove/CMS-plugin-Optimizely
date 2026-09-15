@@ -58,6 +58,11 @@ public static class Seed
             start.Heading = "First page";
             content.Save(start, SaveAction.Publish, AccessLevel.NoAccess);
         }
+        // Fixture authors must be able to read draft versions, not just published pages.
+        var permissions = new ContentAccessControlList { IsInherited = false };
+        permissions.AddEntry(new AccessControlEntry("Everyone", AccessLevel.Read, SecurityEntityType.Role));
+        permissions.AddEntry(new AccessControlEntry("WebEditors", AccessLevel.Read | AccessLevel.Create | AccessLevel.Edit, SecurityEntityType.Role));
+        services.GetRequiredService<IContentSecurityRepository>().Save(start.ContentLink, permissions, SecuritySaveType.Replace);
         if (!live && !content.GetChildren<StandardPage>(start.ContentLink).Any(p => p.Name == "Second page"))
         {
             var second = content.GetDefault<StandardPage>(start.ContentLink, CultureInfo.GetCultureInfo("en"));
