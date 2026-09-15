@@ -69,3 +69,13 @@ Added a release-only job gated on successful functional and package/CMS workflow
 Validation: eight new Python unit tests passed, including candidate identity/checksum rejection, failed package verification, existing draft/published release protection, tag validation, API failures, and draft-only creation with the exact assets. Together with the package tests, all 11 Python tests passed. All three workflows passed actionlint with ShellCheck disabled. GitHub API mutations are mocked in these unit tests; actual draft creation and release-candidate dispatch have not been executed.
 
 The rerun after the draft-release addition passed the functional workflow and package/unit jobs, including all 11 Python tests. The [CMS job failed](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34970661033) in the simulated overlay-outage test: the navigation-pane button did not appear after login. Three CMS tests passed and the final test was skipped. The earlier successful run does not establish that the current branch is green; this failure needs investigation before merge. The release gate correctly blocks draft creation when CMS checks fail.
+
+## CMS failure fixes
+
+Commit `7578995` passed [package/CMS validation](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34987032927) with all five browser scenarios, including the overlay outage and reload recovery. The [functional workflow](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34987033230) also passed. Nine JavaScript and 11 Python unit tests passed.
+
+The outage trace showed a Dojo script-loading error while the external overlay was a required CMS module resource. A packaged local loader now starts the external script asynchronously and initializes the command queue, so failed CDN loading does not prevent the navigation toolbar from appearing. Queued callbacks and pending token responses use the current overlay handler when it arrives.
+
+Run `34971477292` failed on an immediate reload after settings save. The server returned the correct protected-module redirect and HTTP 200; the reload encountered a browser protocol error. The test now waits for the response body and page load before verifying persisted values and reloading. This is distinct from PR15's incorrect redirect under conventional site routing.
+
+These changes resolve the failures recorded above. Live Siteimprove and upgrade testing remain outside this controlled-response suite.

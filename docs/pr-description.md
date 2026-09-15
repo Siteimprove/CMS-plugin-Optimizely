@@ -1,16 +1,15 @@
 Title: Verify generated packages in a disposable CMS test host
 
-Build a fresh NuGet candidate, verify its contents, and install that exact package into a disposable CMS 12 application for browser tests. Preserve the public framework/dependency range and existing functional tests. Add a separate release-candidate workflow that creates an unpublished GitHub Release after all tests pass. Attach the exact tested package, checksum and manifests; no feed upload or public release is performed.
+Build a fresh NuGet candidate, verify its contents, and install that exact package into a disposable CMS 12 application for browser tests. Preserve the public framework/dependency range and existing functional tests. Add a release-candidate workflow that creates an unpublished GitHub Release after all required tests pass, attaching the exact tested package, checksum and manifests.
 
-The CMS tests use real login, pages and persisted settings with controlled Siteimprove responses. They do not verify live reports.
+Load the Siteimprove overlay asynchronously through a packaged local loader so a CDN outage cannot block CMS startup. Preserve pending commands and use the current overlay handler after it loads. The settings-persistence test waits for the completed save response before reloading.
+
+The CMS tests use real login, pages and persisted settings with controlled Siteimprove responses. They do not verify live reports. PR15 addresses a separate redirect defect in hosts with conventional routing; that fix is not included here.
 
 Validation on September 15:
 
-- [Linux package/CMS workflow passed](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34962695111): package checks, six damaged-package controls, exact-package installation, CMS startup and all five editor tests.
-- [Functional workflow passed](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34962695101): 57 backend cases on each of .NET 6 and .NET 8, 20 browser checks and separate non-blocking observations.
-- Four JavaScript and three Python unit tests passed. All three workflow definitions passed actionlint.
-- Smoke-script execution took 57.45 seconds including database startup, CMS readiness, browser tests and cleanup; earlier dependency installation/build steps are excluded.
+- [Package and CMS checks passed](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34987032927): package verification, six damaged-package controls, exact-package installation, CMS startup and all five editor tests, including delayed and failed overlay loading.
+- [Functional checks passed](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34987033230): 57 backend cases on each of .NET 6 and .NET 8, 20 browser checks and separate non-blocking observations.
+- Nine JavaScript and 11 Python unit tests passed, including loader deduplication, queued commands and draft-release safeguards.
 
-See `docs/validation.md` for the tested source, candidate checksum and limitations. The draft-release helper passes eight local unit tests covering candidate identity/checksums, package rejection, existing releases/tags, API failures and draft-only creation. Release-candidate dispatch, actual draft creation and live Siteimprove reports remain untested. No package was published.
-
-The rerun after the draft-release addition passed the functional workflow and package/unit jobs, including all 11 Python tests. The [CMS job failed](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34970661033) in the simulated overlay-outage test: the navigation-pane button did not appear after login. Three CMS tests passed and the final test was skipped. The earlier successful run does not establish that the current branch is green; this failure needs investigation before merge. The release gate correctly blocks draft creation when CMS checks fail.
+See `docs/validation.md` for validation history and limitations. Release-candidate dispatch, actual draft creation, customer upgrades and live Siteimprove reports remain untested. No package was published.
