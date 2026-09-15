@@ -4,7 +4,11 @@
   "scripts": {
     "test": "playwright test --grep-invert @observation",
     "test:observations": "playwright test --grep @observation",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "test:unit": "node --test tests/unit/*.test.cjs",
+    "test:cms": "playwright test --config playwright.cms.config.ts"
   },
-  "devDependencies": { "@playwright/test": "1.63.0" }
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
 }
