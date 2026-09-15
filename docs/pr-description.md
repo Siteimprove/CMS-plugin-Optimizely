@@ -12,3 +12,5 @@ Validation on September 15:
 - Smoke-script execution took 57.45 seconds including database startup, CMS readiness, browser tests and cleanup; earlier dependency installation/build steps are excluded.
 
 See `docs/validation.md` for the tested source, candidate checksum and limitations. The draft-release helper passes eight local unit tests covering candidate identity/checksums, package rejection, existing releases/tags, API failures and draft-only creation. Release-candidate dispatch, actual draft creation and live Siteimprove reports remain untested. No package was published.
+
+The rerun after the draft-release addition passed the functional workflow and package/unit jobs, including all 11 Python tests. The [CMS job failed](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34970661033) in the simulated overlay-outage test: the navigation-pane button did not appear after login. Three CMS tests passed and the final test was skipped. The earlier successful run does not establish that the current branch is green; this failure needs investigation before merge. The release gate correctly blocks draft creation when CMS checks fail.
