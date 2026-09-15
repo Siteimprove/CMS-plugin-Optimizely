@@ -68,12 +68,9 @@ test('live reporting discards raw failures and attachments', async () => {
   } finally { process.chdir(cwd); fs.rmSync(temp, { recursive: true, force: true }); }
 });
 
-test('prepublish requires explicit success and issue labels', async () => {
-  const { prepublishSettings } = await import('../live/settings.mjs');
-  assert.throws(() => prepublishSettings(fixture()), /MISSING_SITEIMPROVE_SCAN_SUCCESS_LABEL/);
-  const configured = { ...fixture(), SITEIMPROVE_SCAN_SUCCESS_LABEL: 'Completed successfully',
-    SITEIMPROVE_IMAGE_ISSUE_LABEL: 'Missing image alternative' };
-  assert.equal(prepublishSettings(configured).imageIssueLabel, configured.SITEIMPROVE_IMAGE_ISSUE_LABEL);
+test('live configuration needs only the six shared secrets', async () => {
+  const { settings } = await import('../live/settings.mjs');
+  assert.equal(settings(fixture()).cmsOrigin, 'http://localhost:5000');
 });
 
 test('draft evidence ignores messages outside the real SDK origin and tracks each marker separately', async () => {

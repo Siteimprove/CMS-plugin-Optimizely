@@ -13,8 +13,7 @@ export function settings(env) {
     || !/^\/(?:[a-z0-9_-]+\/)*$/.test(crawled.pathname))
     throw new Error('UNSUPPORTED_PUBLIC_URL_CONFIGURATION');
   return { ...Object.fromEntries(names.map(name => [name, env[name]])), crawledUrl: crawled.href,
-    cmsOrigin: 'http://localhost:5000', scanSuccessLabel: env.SITEIMPROVE_SCAN_SUCCESS_LABEL,
-    imageIssueLabel: env.SITEIMPROVE_IMAGE_ISSUE_LABEL };
+    cmsOrigin: 'http://localhost:5000' };
 }
 
 export function allowedRequest(value) {
@@ -26,12 +25,4 @@ export function allowedRequest(value) {
 export function isReport(value, expectedUrl) {
   return value?.authed === true && value.error === 'None' && Number.isFinite(value.issues)
     && value.issues >= 0 && value.mainUrl === expectedUrl;
-}
-
-
-export function prepublishSettings(env) {
-  const config = settings(env);
-  for (const name of ['SITEIMPROVE_SCAN_SUCCESS_LABEL', 'SITEIMPROVE_IMAGE_ISSUE_LABEL'])
-    if (!env[name]?.trim()) throw new Error(`MISSING_${name}`);
-  return config;
 }

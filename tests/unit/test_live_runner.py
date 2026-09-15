@@ -1,5 +1,6 @@
 import os
 import sys
+import subprocess
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -17,10 +18,13 @@ class LiveRunnerChecks(unittest.TestCase):
                 cms_smoke.main()
             run.assert_not_called()
 
-    def test_live_mode_requires_explicit_enablement_before_starting_services(self):
+    def test_live_configuration_failure_stops_before_starting_services(self):
         with patch.dict(os.environ, {}, clear=True), \
                 patch.object(sys, 'argv', ['cms_smoke.py', '--live']), \
-                patch.object(cms_smoke.subprocess, 'run') as run:
-            with self.assertRaisesRegex(SystemExit, 'LIVE_TESTS_ENABLED'):
+                patch.object(cms_smoke.shutil, 'rmtree'), \
+                patch.object(cms_smoke.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, 'node')) as run, \
+                patch.object(cms_smoke.subprocess, 'Popen') as start:
+            with self.assertRaises(subprocess.CalledProcessError):
                 cms_smoke.main()
-            run.assert_not_called()
+            self.assertEqual(run.call_args.args[0][0], 'node')
+            start.assert_not_called()

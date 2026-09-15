@@ -25,11 +25,9 @@ def main():
     if not live and any(key.startswith('SITEIMPROVE_') and value for key, value in os.environ.items()):
         raise SystemExit('Do not supply live configuration to the controlled-response suite.')
     if live:
-        if os.environ.get('LIVE_TESTS_ENABLED') != 'true':
-            raise SystemExit('Live tests require LIVE_TESTS_ENABLED=true.')
         shutil.rmtree(ROOT / 'artifacts/live', ignore_errors=True)
         subprocess.run(['node', '--input-type=module', '-e',
-            "import { prepublishSettings } from './tests/live/settings.mjs'; try { prepublishSettings(process.env); } catch { process.exit(1); }"],
+            "import { settings } from './tests/live/settings.mjs'; try { settings(process.env); } catch { process.exit(1); }"],
             cwd=ROOT, check=True)
     if not shutil.which('docker'):
         raise SystemExit('Docker is required: use an x64 Linux host or the GitHub-hosted CMS job.')
