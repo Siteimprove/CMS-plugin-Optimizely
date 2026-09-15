@@ -59,12 +59,17 @@ test('live reporting discards raw failures and attachments', async () => {
     process.chdir(temp);
     const reporter = new Reporter();
     reporter.onError(new Error('private-value'));
-    reporter.onTestEnd({ title: 'fixed smoke test' }, { status: 'failed', duration: 1,
-      error: { message: 'private-value' }, attachments: [{ body: 'private-value' }] });
+    const result = { status: 'failed', duration: 1,
+      error: { message: 'private-value' }, attachments: [{ body: 'private-value' }] };
+    reporter.onStepBegin({}, result, { category: 'test.step', title: 'live: CMS login' });
+    reporter.onStepBegin({}, result, { category: 'test.step', title: 'private-value' });
+    reporter.onStepBegin({}, result, { category: 'pw:api', title: 'private-value' });
+    reporter.onTestEnd({ title: 'fixed smoke test' }, result);
     reporter.onEnd({ status: 'failed' });
     const output = fs.readFileSync('artifacts/live/result.json', 'utf8');
     assert.equal(output.includes('private-value'), false);
     assert.equal(JSON.parse(output).tests[0].status, 'failed');
+    assert.equal(JSON.parse(output).tests[0].lastStage, 'live: CMS login');
   } finally { process.chdir(cwd); fs.rmSync(temp, { recursive: true, force: true }); }
 });
 
