@@ -9,9 +9,9 @@ export async function openLiveEditor(page, context) {
     const entitlement = await fetch('https://api.siteimprove.com/v2/settings/content_checking', {
       headers: { Authorization: `Basic ${Buffer.from(`${config.SITEIMPROVE_API_USERNAME}:${config.SITEIMPROVE_API_KEY}`).toString('base64')}` },
       redirect: 'error', signal: AbortSignal.timeout(30_000),
-  });
-  expect(entitlement.ok).toBe(true);
-  expect((await entitlement.json()).is_ready).toBe(true);
+    });
+    expect(entitlement.ok).toBe(true);
+    expect((await entitlement.json()).is_ready).toBe(true);
   });
 
   let reportReceived = false;
