@@ -38,7 +38,7 @@ def prepare(profile='cms12-current', baseline=False):
             raise ValueError('Candidate checksum mismatch')
     host = ROOT / ('artifacts/host-baseline' if baseline else 'artifacts/host')
     if host.exists():
-        raise ValueError('artifacts/host already exists; move it aside before preparing a fresh host')
+        raise ValueError(f'{host} already exists; move it aside before preparing a fresh host')
     shutil.copytree(ROOT / 'tests/CmsHost', host, ignore=shutil.ignore_patterns('bin', 'obj', 'modules', 'App_Data'))
     lock = json.loads((host / lock_path).read_text())
     lock['dependencies']['net8.0'][PACKAGE] = {
@@ -76,7 +76,10 @@ def prepare(profile='cms12-current', baseline=False):
     evidence = ROOT / 'artifacts/evidence'
     evidence.mkdir(exist_ok=True)
     shutil.copy2(host / 'packages.lock.json', evidence / ('baseline.packages.lock.json' if baseline else 'host.packages.lock.json'))
-    print('Host compiled; candidate DLL and consumer-installed module ZIP match exactly.')
+    (evidence / ('baseline-package.json' if baseline else 'installed-package.json')).write_text(
+        json.dumps({'version': version, 'sha256': hashlib.sha256(package.read_bytes()).hexdigest(),
+                    'cmsProfile': profile}, indent=2) + '\n')
+    print('Host compiled; installed DLL and module ZIP match the selected package exactly.')
 
 
 if __name__ == '__main__':

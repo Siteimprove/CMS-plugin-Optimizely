@@ -76,14 +76,14 @@ Artifacts retain the package, checksum, source/dependency manifest, resolved hos
 
 The release-candidate workflow accepts `vMAJOR.MINOR.PATCH` tags or equivalent manual version input and checks it against the project version. It runs the functional suite and the same package/CMS pipeline. Only after all required jobs succeed does a separate job create an unpublished GitHub Release for `vMAJOR.MINOR.PATCH`. That job alone has `contents: write`; ordinary PR builds keep read-only permissions.
 
-The draft attaches the tested `.nupkg`, `SHA256SUMS`, `manifest.json` and plugin dependency lockfile. The package is downloaded from the same run and verified again against the expected version, source commit and checksum; it is never rebuilt for upload. Notes identify the source, checksum, validation run and outstanding upgrade/live checks. These release assets remain available beyond the seven-day Actions artifact window until the draft or assets are deleted.
+The draft attaches the tested `.nupkg`, `SHA256SUMS`, `manifest.json` and plugin dependency lockfile. The package is downloaded from the same run and verified again against the expected version, source commit and checksum; it is never rebuilt for upload. Notes identify the source, checksum, validation run, automated upgrade coverage and outstanding live checks. These release assets remain available beyond the seven-day Actions artifact window until the draft or assets are deleted.
 
 To create one after this workflow is on main:
 
 1. Update the project's version and commit it.
 2. Open **Actions → Release candidate → Run workflow**, select that source ref and enter the matching version.
 3. After a successful run, open **Releases** to review the draft and download its attachments. Drafts are visible to repository collaborators with the appropriate access; they are not published release pages.
-4. Review the notes, complete upgrade and live Siteimprove acceptance, then separately approve feed publication and publication of the GitHub Release. Promote the attached package bytes; a rebuild needs fresh validation.
+4. Review the notes and upgrade evidence, complete live Siteimprove acceptance, then separately approve feed publication and publication of the GitHub Release. Promote the attached package bytes; a rebuild needs fresh validation.
 
 Reruns never replace an existing draft or published release for the same version. They stop for review instead. An existing tag must resolve to the tested commit. If an upload fails, the release remains a draft and the job fails; review the partial draft before retrying, rather than replacing assets blindly. Draft creation does not upload anything to NuGet/Optimizely or publish a GitHub Release. The draft job uses the built-in GitHub token and needs no additional secret.
 
