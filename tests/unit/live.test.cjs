@@ -60,6 +60,8 @@ test('live reporting discards raw failures and attachments', async () => {
     const reporter = new Reporter();
     reporter.onError(new Error('private-value'));
     const result = { status: 'failed', duration: 1,
+      annotations: [{ type: 'live-diagnostics', description: JSON.stringify({ entitlementStatus: 429,
+        panelVisible: false, pollStatus: 'private-value', url: 'private-value', token: 'private-value' }) }],
       error: { message: 'private-value' }, attachments: [{ body: 'private-value' }] };
     reporter.onStepBegin({}, result, { category: 'test.step', title: 'live: CMS login' });
     reporter.onStepBegin({}, result, { category: 'test.step', title: 'private-value' });
@@ -70,6 +72,7 @@ test('live reporting discards raw failures and attachments', async () => {
     assert.equal(output.includes('private-value'), false);
     assert.equal(JSON.parse(output).tests[0].status, 'failed');
     assert.equal(JSON.parse(output).tests[0].lastStage, 'live: CMS login');
+    assert.deepEqual(JSON.parse(output).tests[0].diagnostics, { panelVisible: false, entitlementStatus: 429 });
   } finally { process.chdir(cwd); fs.rmSync(temp, { recursive: true, force: true }); }
 });
 
@@ -92,4 +95,11 @@ test('draft evidence ignores messages outside the real SDK origin and tracks eac
   receive({ frame: { url: () => 'https://contentassistant.eu.siteimprove.com/' } }, { marker: 'draft-two' });
   assert.equal(evidence['draft-one'], 0);
   assert.equal(evidence['draft-two'], 1);
+});
+
+test('live diagnostics accept only known booleans and HTTP status codes', async () => {
+  const { safeDiagnostics } = await import('../live/diagnostics.mjs');
+  assert.deepEqual(safeDiagnostics({ pollStatus: 200, pollAuthenticated: true, body: 'private-value' }),
+    { pollAuthenticated: true, pollStatus: 200 });
+  assert.deepEqual(safeDiagnostics({ pollStatus: 123456, entitlementStatus: 0, pollAuthenticated: 'private-value' }), {});
 });
