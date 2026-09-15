@@ -4,7 +4,7 @@ Status: package build and host compilation validated locally; the real CMS brows
 
 ## Baseline and scope
 
-This change builds on PR #13 (`4e2eb89a98868ae563a3af521968bb436b93e85c`), including the functional coverage from PR #12. The existing backend tests, browser tests, npm commands and functional workflow remain available. The CMS suite has its own `playwright.cms.config.ts` and `tests/cms` directory. The shared SDK pin also applies to the functional workflow, which installs that exact SDK alongside .NET 6.
+This branch is based on `main` at `b23e48e7b12d8b3170d4595be28b61c16b39eeef`, after PRs #11, #12 and #13 merged. It includes the dependency-lockfile package exclusion from #12. The existing backend tests, browser tests, npm commands and functional workflow remain available. The CMS suite has its own `playwright.cms.config.ts` and `tests/cms` directory. The shared SDK pin also applies to the functional workflow, which installs that exact SDK alongside .NET 6.
 
 The public project keeps its `net6.0` target, version `4.3.4`, and `EPiServer.CMS.UI.Core [12.0.2,13.0.0)` dependency range. The HTTP client factory constructor delegates to the existing request factory from PR #13; its error handling and regression tests are preserved. Release candidates must pass the existing functional workflow as well as the package/CMS workflow.
 
