@@ -82,7 +82,10 @@ test('prepublish detects WCAG 1.1.1 image alternative issue and clears it after 
       expect(await (await page.request.get(publishedPath)).text()).not.toContain(fixedMarker);
     });
   } finally {
-    test.info().annotations.push({ type: 'live-diagnostics', description: JSON.stringify({ sdkAssets: [...sdkAssets] }) });
+    test.info().annotations.push({ type: 'live-diagnostics', description: JSON.stringify({ sdkAssets: [...sdkAssets],
+      firstDraftImagePresent: evidence.captures[marker].imagePresent,
+      fixedDraftImagePresent: evidence.captures[fixedMarker].imagePresent,
+      fixedDraftAlternativePresent: evidence.captures[fixedMarker].fixedAlternativePresent }) });
     try {
       const state = await resultViewState(page.frameLocator('iframe.si-iframe-element'));
       test.info().annotations.push({ type: 'live-diagnostics', description: JSON.stringify(state) });

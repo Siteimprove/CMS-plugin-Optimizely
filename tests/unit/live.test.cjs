@@ -95,9 +95,10 @@ test('draft evidence ignores messages outside the real SDK origin and tracks eac
   receive({ frame: { url: () => 'https://unrelated.example.test/' } }, { marker: 'draft-one' });
   receive({ frame: { url: () => 'https://contentassistant.eu.siteimprove.com/' } }, { marker: 'unrelated' });
   assert.equal(evidence['draft-one'], 0);
-  receive({ frame: { url: () => 'https://contentassistant.eu.siteimprove.com/' } }, { marker: 'draft-two' });
+  receive({ frame: { url: () => 'https://contentassistant.eu.siteimprove.com/' } }, { marker: 'draft-two', imagePresent: true, fixedAlternativePresent: true });
   assert.equal(evidence['draft-one'], 0);
   assert.equal(evidence['draft-two'], 1);
+  assert.deepEqual(evidence.captures['draft-two'], { imagePresent: true, fixedAlternativePresent: true });
 });
 
 test('live diagnostics accept only known booleans and HTTP status codes', async () => {

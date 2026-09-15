@@ -2,7 +2,8 @@ const flags = ['entitlementReady', 'pollSeen', 'pollOk', 'pollAuthenticated', 'p
   'pollMainUrlPresent', 'pollIssueCountValid', 'pollErrorNone', 'panelFramePresent', 'panelVisible', 'launcherVisible',
   'blockedExternalRequest', 'accessibilityCategoryVisible', 'imageIssuePresent', 'imageIssueVisible',
   'resultAlertVisible', 'resultHasNestedFrame', 'resultRunning', 'resultRecheckVisible',
-  'prepublishViewSelected', 'livePageViewSelected'];
+  'prepublishViewSelected', 'livePageViewSelected', 'firstDraftImagePresent',
+  'fixedDraftImagePresent', 'fixedDraftAlternativePresent'];
 
 // Only static SDK bundles; never application routes or query strings.
 export function publicSdkAsset(value) {
