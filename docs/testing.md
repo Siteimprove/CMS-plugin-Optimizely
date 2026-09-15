@@ -88,3 +88,17 @@ To create one after this workflow is on main:
 Reruns never replace an existing draft or published release for the same version. They stop for review instead. An existing tag must resolve to the tested commit. If an upload fails, the release remains a draft and the job fails; review the partial draft before retrying, rather than replacing assets blindly. Draft creation does not upload anything to NuGet/Optimizely or publish a GitHub Release. The draft job uses the built-in GitHub token and needs no additional secret.
 
 The separate manual live workflow is documented in [live testing](live-testing.md), with required environment protections, account setup and URL constraints. It remains unvalidated against a live account. The [coverage plan](test-coverage-plan.md) tracks the remaining regression and release-acceptance work. The `.invalid` mapping in ordinary tests intentionally cannot supply a live report.
+
+
+## Small CMS 12 compatibility matrix
+
+Each package is installed unchanged into two .NET 8 CMS hosts. Both run all six controlled-response CMS scenarios, including draft persistence and separation from published content.
+
+| Profile | CMS UI/metapackage | CMS Core/hosting | Purpose |
+| --- | --- | --- | --- |
+| `cms12-current` | 12.34.6 | 12.24.0 | Existing baseline; also used for protected live scans |
+| `cms12-2025` | 12.32.5 | 12.22.6 | Older CMS 12 line from the [April 2025 release](https://support.optimizely.com/hc/en-us/articles/42412167768333-2025-Optimizely-CMS-12-release-notes) |
+
+Use `python3 scripts/host.py --profile cms12-2025` to select the older host locally. Each profile has a committed dependency lock. CMS Core helper packages are pinned together to avoid conflicting exact routing dependencies. CI retains separate evidence artifacts per profile and requires both to pass.
+
+This is a compatibility sample, not a claim to cover every version in the package's supported range. It adds one CMS job, not a cross-product of browsers, runtimes and live services. CMS 13 remains outside this release's dependency range. Live scans run on the newer profile only.
