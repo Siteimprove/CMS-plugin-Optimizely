@@ -1,5 +1,5 @@
 const flags = ['entitlementReady', 'pollSeen', 'pollOk', 'pollAuthenticated', 'pollUrlMatches',
-  'pollIssueCountValid', 'pollErrorNone', 'panelFramePresent', 'panelVisible', 'launcherVisible',
+  'pollMainUrlPresent', 'pollIssueCountValid', 'pollErrorNone', 'panelFramePresent', 'panelVisible', 'launcherVisible',
   'blockedExternalRequest'];
 
 // Account text and arbitrary response fields must never enter public artifacts.

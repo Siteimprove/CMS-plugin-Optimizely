@@ -54,3 +54,5 @@ Unit tests verify configuration rejection, URL separation, report-readiness pred
 The outcome JSON contains an explicit `skipped` entry for missing-image-alternative result validation. Passing smoke checks establish authentication, report lookup, fresh draft handoff and loading-state exit; they do not establish correct prepublish results. This follows the [WordPress live runner](https://github.com/Siteimprove/CMS-plugin-Wordpress/blob/master/tests/live/run.js).
 
 After login, the test waits for authenticated report data for the mapped URL before opening the report panel, matching the WordPress flow. Diagnostic fields are independently filtered by the reporter; they contain no raw response fields, account text or URLs.
+
+Report identity is checked against the exact `url` parameter on the SDK polling request. Like WordPress, the response must be authenticated, error-free, include a nonnegative numeric issue count and a nonempty `mainUrl`; that response field is not assumed to equal the crawled page URL.
