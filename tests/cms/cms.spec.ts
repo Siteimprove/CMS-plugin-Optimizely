@@ -44,6 +44,14 @@ async function login(page: Page, username = 'editor') {
 }
 
 async function selectPage(page: Page, name: string) {
+  const firstPage = page.getByRole('treeitem').filter({ has: page.getByText('First page', { exact: true }) }).last();
+  if (!await firstPage.isVisible())
+    await page.getByRole('button', { name: 'Toggle navigation pane', exact: true }).click();
+  await expect(firstPage).toBeVisible();
+  if (name === 'Second page' && await firstPage.getAttribute('aria-expanded') === 'false') {
+    await firstPage.focus();
+    await firstPage.press('ArrowRight');
+  }
   await page.getByRole('treeitem').filter({ has: page.getByText(name, { exact: true }) }).last().dblclick();
   await expect(page.frameLocator('iframe[name="sitePreview"]').locator('h1')).toHaveText(name);
 }
