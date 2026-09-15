@@ -55,8 +55,12 @@ public class Startup
                 plugin = resolver.ResolvePath(Constants.SiteImproveModuleName, "Siteimprove")
             }).RequireAuthorization();
             endpoints.MapGet("/test/live-target", () =>
-                Environment.GetEnvironmentVariable("CMS_SITEIMPROVE_MODE") == "live" && Seed.Ready
-                    ? Results.Ok(new { contentId = Seed.LiveContentId }) : Results.NotFound()).RequireAuthorization();
+                Seed.Ready ? Results.Ok(new { contentId = Seed.LiveContentId }) : Results.NotFound())
+                .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
+            endpoints.MapPost("/test/live-draft/fix", (HttpContext context, EPiServer.IContentRepository content) =>
+                Seed.Ready && context.Request.Headers["X-Cms-Test"] == "prepublish"
+                    ? Results.Ok(new { contentId = Seed.FixLiveDraft(content) }) : Results.NotFound())
+                .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
             endpoints.MapGet("/test/ready", () => Seed.Ready ? Results.Ok() : Results.StatusCode(503));
         });
     }

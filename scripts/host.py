@@ -1,4 +1,5 @@
 """Install an exact candidate into a fresh copy of the real CMS host."""
+import argparse
 import base64
 import hashlib
 import json
@@ -12,7 +13,15 @@ from verify_package import PACKAGE, MODULE, verify
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def prepare():
+PROFILES = {
+    'cms12-current': ('12.34.6', '12.24.0', 'packages.lock.json'),
+    'cms12-2025': ('12.32.5', '12.22.6', 'locks/cms12-2025.json'),
+}
+
+
+def prepare(profile='cms12-current'):
+    ui_version, core_version, lock_path = PROFILES[profile]
+    properties = [f'-p:CmsUiVersion={ui_version}', f'-p:CmsCoreVersion={core_version}']
     candidate = ROOT / 'artifacts/candidate'
     manifest = json.loads((candidate / 'manifest.json').read_text())
     package = candidate / manifest['package']
@@ -22,7 +31,7 @@ def prepare():
     if host.exists():
         raise ValueError('artifacts/host already exists; move it aside before preparing a fresh host')
     shutil.copytree(ROOT / 'tests/CmsHost', host, ignore=shutil.ignore_patterns('bin', 'obj', 'modules', 'App_Data'))
-    lock = json.loads((host / 'packages.lock.json').read_text())
+    lock = json.loads((host / lock_path).read_text())
     version = manifest['packageVersion']
     lock['dependencies']['net8.0'][PACKAGE] = {
         'type': 'Direct', 'requested': f'[{version}, {version}]', 'resolved': version,
@@ -46,9 +55,9 @@ def prepare():
     if candidate_cache.exists():
         shutil.rmtree(candidate_cache)
     subprocess.run(['dotnet', 'restore', 'CmsHost.csproj', '--locked-mode', '--configfile', 'NuGet.config',
-                    f'-p:CandidateVersion={version}'], cwd=host, env=env, check=True)
+                    f'-p:CandidateVersion={version}', *properties], cwd=host, env=env, check=True)
     subprocess.run(['dotnet', 'build', 'CmsHost.csproj', '-c', 'Release', '--no-restore',
-                    f'-p:CandidateVersion={version}'], cwd=host, env=env, check=True)
+                    f'-p:CandidateVersion={version}', *properties], cwd=host, env=env, check=True)
     import zipfile
     with zipfile.ZipFile(package) as z:
         if (host / MODULE).read_bytes() != z.read(f'contentFiles/any/net6.0/{MODULE}'):
@@ -63,4 +72,6 @@ def prepare():
 
 
 if __name__ == '__main__':
-    prepare()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--profile', choices=PROFILES, default='cms12-current')
+    prepare(parser.parse_args().profile)

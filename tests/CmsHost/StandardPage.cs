@@ -9,6 +9,9 @@ namespace CmsHost;
 public class StandardPage : PageData
 {
     public virtual string Heading { get; set; } = "";
+    public virtual string TestMarker { get; set; } = "";
+    public virtual bool IncludeTestImage { get; set; }
+    public virtual string ImageAlternative { get; set; } = "";
 }
 
 public class StandardPageController : PageController<StandardPage>

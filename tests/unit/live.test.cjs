@@ -67,3 +67,27 @@ test('live reporting discards raw failures and attachments', async () => {
     assert.equal(JSON.parse(output).tests[0].status, 'failed');
   } finally { process.chdir(cwd); fs.rmSync(temp, { recursive: true, force: true }); }
 });
+
+test('prepublish requires explicit success and issue labels', async () => {
+  const { prepublishSettings } = await import('../live/settings.mjs');
+  assert.throws(() => prepublishSettings(fixture()), /MISSING_SITEIMPROVE_SCAN_SUCCESS_LABEL/);
+  const configured = { ...fixture(), SITEIMPROVE_SCAN_SUCCESS_LABEL: 'Completed successfully',
+    SITEIMPROVE_IMAGE_ISSUE_LABEL: 'Missing image alternative' };
+  assert.equal(prepublishSettings(configured).imageIssueLabel, configured.SITEIMPROVE_IMAGE_ISSUE_LABEL);
+});
+
+test('draft evidence ignores messages outside the real SDK origin and tracks each marker separately', async () => {
+  const { observeDraft } = await import('../live/prepublish.mjs');
+  let receive;
+  const context = {
+    exposeBinding: async (_, callback) => { receive = callback; },
+    addInitScript: async () => {},
+  };
+  const evidence = await observeDraft(context, 'http://localhost:5000', ['draft-one', 'draft-two']);
+  receive({ frame: { url: () => 'https://unrelated.example.test/' } }, { marker: 'draft-one' });
+  receive({ frame: { url: () => 'https://contentassistant.eu.siteimprove.com/' } }, { marker: 'unrelated' });
+  assert.equal(evidence['draft-one'], 0);
+  receive({ frame: { url: () => 'https://contentassistant.eu.siteimprove.com/' } }, { marker: 'draft-two' });
+  assert.equal(evidence['draft-one'], 0);
+  assert.equal(evidence['draft-two'], 1);
+});

@@ -26,7 +26,7 @@ def main():
             raise SystemExit('Live tests require LIVE_TESTS_ENABLED=true.')
         shutil.rmtree(ROOT / 'artifacts/live', ignore_errors=True)
         subprocess.run(['node', '--input-type=module', '-e',
-            "import { settings } from './tests/live/settings.mjs'; try { settings(process.env); } catch { process.exit(1); }"],
+            "import { prepublishSettings } from './tests/live/settings.mjs'; try { prepublishSettings(process.env); } catch { process.exit(1); }"],
             cwd=ROOT, check=True)
     if not shutil.which('docker'):
         raise SystemExit('Docker is required: use an x64 Linux host or the GitHub-hosted CMS job.')
@@ -38,6 +38,8 @@ def main():
     container = 'cms-sql-' + secrets.token_hex(6)
     env = dict(os.environ, ACCEPT_EULA='Y', MSSQL_PID='Developer', MSSQL_SA_PASSWORD=password,
                SQLCMDPASSWORD=password, CMS_EDITOR_PASSWORD=editor_password,
+               CMS_DRAFT_MARKER='CMS-DRAFT-' + secrets.token_hex(12),
+               CMS_DRAFT_FIXED_MARKER='CMS-FIXED-' + secrets.token_hex(12),
                CMS_TEST_HOST='1', CMS_SITEIMPROVE_MODE='live' if live else 'stub', ASPNETCORE_ENVIRONMENT='Development',
                Logging__LogLevel__Default='Warning', Logging__LogLevel__Microsoft='Warning')
     started = time.monotonic()
@@ -84,7 +86,7 @@ def main():
             timings['sqlResources'] = json.loads(subprocess.check_output(
                 ['docker', 'stats', '--no-stream', '--format', '{{json .}}', container], text=True))
             subprocess.run(['npm', 'run', 'test:live' if live else 'test:cms'], cwd=ROOT, env=env,
-                           check=True, timeout=600, stdout=subprocess.DEVNULL if live else None,
+                           check=True, timeout=900, stdout=subprocess.DEVNULL if live else None,
                            stderr=subprocess.DEVNULL if live else None)
     finally:
         if process and process.poll() is None:

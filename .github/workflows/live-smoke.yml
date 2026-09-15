@@ -43,8 +43,10 @@ jobs:
       - run: python3 scripts/host.py
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
-      - name: Read an existing report through the real overlay
+      - name: Verify the real report and prepublish draft scans
         env:
+          SITEIMPROVE_SCAN_SUCCESS_LABEL: ${{ vars.SITEIMPROVE_SCAN_SUCCESS_LABEL }}
+          SITEIMPROVE_IMAGE_ISSUE_LABEL: ${{ vars.SITEIMPROVE_IMAGE_ISSUE_LABEL }}
           LIVE_TESTS_ENABLED: ${{ vars.LIVE_TESTS_ENABLED }}
           SITEIMPROVE_USERNAME: ${{ secrets.SITEIMPROVE_USERNAME }}
           SITEIMPROVE_PASSWORD: ${{ secrets.SITEIMPROVE_PASSWORD }}

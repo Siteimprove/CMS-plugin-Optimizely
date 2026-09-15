@@ -72,6 +72,11 @@ jobs:
           retention-days: 7
 
   cms:
+    name: CMS (${{ matrix.profile }})
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [cms12-current, cms12-2025]
     needs: [unit, package]
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -90,7 +95,7 @@ jobs:
         with:
           name: candidate
           path: artifacts/candidate
-      - run: python3 scripts/host.py
+      - run: python3 scripts/host.py --profile "${{ matrix.profile }}"
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
       - name: Real CMS with controlled Siteimprove responses
@@ -99,7 +104,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: cms-evidence
+          name: cms-evidence-${{ matrix.profile }}
           path: |
             artifacts/evidence/**
             !artifacts/evidence/**/*.raw.log

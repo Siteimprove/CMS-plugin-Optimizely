@@ -14,7 +14,7 @@ namespace CmsHost;
 public static class Seed
 {
     public static volatile bool Ready;
-    public static int LiveContentId;
+    public static string LiveContentId = "";
 
     public static async Task RunAsync(IServiceProvider provider)
     {
@@ -87,14 +87,42 @@ public static class Seed
                 content.Save(child, SaveAction.Publish, AccessLevel.NoAccess);
                 target = child;
             }
-            LiveContentId = target.ContentLink.ID;
+            CreateDraft(content, target);
             // Rechecks stay disabled: this smoke test only reads existing reports.
             settings.SaveToken(null, recheck: false, latestUI: true,
                 apiUser: Environment.GetEnvironmentVariable("SITEIMPROVE_API_USERNAME"),
                 apiKey: Environment.GetEnvironmentVariable("SITEIMPROVE_API_KEY"),
                 urlMap: new Dictionary<string, string> { ["http://localhost:5000/"] = crawled.GetLeftPart(UriPartial.Authority) + "/" });
         }
+        else
+        {
+            var target = content.GetDefault<StandardPage>(start.ContentLink, CultureInfo.GetCultureInfo("en"));
+            target.Name = "Draft test page";
+            target.URLSegment = "draft-test-page";
+            target.Heading = "Synthetic draft test content";
+            content.Save(target, SaveAction.Publish, AccessLevel.NoAccess);
+            CreateDraft(content, target);
+        }
         Ready = true;
+    }
+
+
+    private static void CreateDraft(IContentRepository content, StandardPage target)
+    {
+        var draft = (StandardPage)target.CreateWritableClone();
+        draft.TestMarker = Environment.GetEnvironmentVariable("CMS_DRAFT_MARKER")!;
+        draft.IncludeTestImage = true;
+        draft.ImageAlternative = "";
+        LiveContentId = content.Save(draft, SaveAction.Save | SaveAction.ForceNewVersion, AccessLevel.NoAccess).ToString();
+    }
+
+    public static string FixLiveDraft(IContentRepository content)
+    {
+        var draft = (StandardPage)content.Get<StandardPage>(new ContentReference(LiveContentId)).CreateWritableClone();
+        draft.ImageAlternative = "Blue square for the prepublish test";
+        draft.TestMarker = Environment.GetEnvironmentVariable("CMS_DRAFT_FIXED_MARKER")!;
+        LiveContentId = content.Save(draft, SaveAction.Save | SaveAction.ForceNewVersion, AccessLevel.NoAccess).ToString();
+        return LiveContentId;
     }
 
     private static void Check(IdentityResult result)
