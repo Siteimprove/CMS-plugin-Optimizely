@@ -61,3 +61,9 @@ The candidate was built from clean committed source (`workingTree=false`). Its m
 Build outputs, package binaries, local caches, browser evidence and disposable CMS state remain ignored. The original draft and prior local validation artifacts were preserved.
 
 The successful Linux run above closes the real-CMS acceptance gap recorded by this earlier local validation. Final PR review and any branch-protection changes remain separate.
+
+## Draft release workflow addition
+
+Added a release-only job gated on successful functional and package/CMS workflows. It verifies the downloaded candidate before creating an unpublished GitHub Release, and attaches the exact package, checksum and manifests. It refuses existing releases and tags pointing to another commit. Only this job has write permission; no public release or feed upload is implemented.
+
+Validation: eight new Python unit tests passed, including candidate identity/checksum rejection, failed package verification, existing draft/published release protection, tag validation, API failures, and draft-only creation with the exact assets. Together with the package tests, all 11 Python tests passed. All three workflows passed actionlint with ShellCheck disabled. GitHub API mutations are mocked in these unit tests; actual draft creation and release-candidate dispatch have not been executed.

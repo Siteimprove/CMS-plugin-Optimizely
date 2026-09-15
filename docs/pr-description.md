@@ -1,6 +1,6 @@
 Title: Verify generated packages in a disposable CMS test host
 
-Build a fresh NuGet candidate, verify its contents, and install that exact package into a disposable CMS 12 application for browser tests. Preserve the public framework/dependency range and existing functional tests. Add a separate release-candidate workflow with no publishing step.
+Build a fresh NuGet candidate, verify its contents, and install that exact package into a disposable CMS 12 application for browser tests. Preserve the public framework/dependency range and existing functional tests. Add a separate release-candidate workflow that creates an unpublished GitHub Release after all tests pass. Attach the exact tested package, checksum and manifests; no feed upload or public release is performed.
 
 The CMS tests use real login, pages and persisted settings with controlled Siteimprove responses. They do not verify live reports.
 
@@ -11,4 +11,4 @@ Validation on September 15:
 - Four JavaScript and three Python unit tests passed. All three workflow definitions passed actionlint.
 - Smoke-script execution took 57.45 seconds including database startup, CMS readiness, browser tests and cleanup; earlier dependency installation/build steps are excluded.
 
-See `docs/validation.md` for the tested source, candidate checksum and limitations. Release-candidate dispatch and live Siteimprove reports remain untested. No package was published.
+See `docs/validation.md` for the tested source, candidate checksum and limitations. The draft-release helper passes eight local unit tests covering candidate identity/checksums, package rejection, existing releases/tags, API failures and draft-only creation. Release-candidate dispatch, actual draft creation and live Siteimprove reports remain untested. No package was published.
