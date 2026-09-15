@@ -10,6 +10,7 @@ using SiteImprove.Optimizely.Plugin.Repositories;
 namespace SiteImprove.Optimizely.Plugin.Controllers
 {
     [Authorize(Policy = Constants.SiteImproveAuthorizationPolicy)]
+    [AutoValidateAntiforgeryToken]
     public class SiteimproveAdminController : Controller
     {
         private readonly ISettingsRepository _settingsRepo;
@@ -27,14 +28,10 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         [ViewData]
         public string Title { get; set; }
 
-        public ActionResult Index(bool newToken = false, bool prepublishError = false)
+        [HttpGet]
+        public ActionResult Index(bool prepublishError = false)
         {
             var settings = _settingsRepo.GetSetting();
-            if (newToken)
-            {
-                settings.Token = _siteimproveHelper.RequestToken();
-                _settingsRepo.SaveToken(settings.Token, settings.Recheck, settings.LatestUI, settings.ApiUser, settings.ApiKey);
-            }
 
             var vm = new SettingsViewModel()
             {
@@ -42,7 +39,7 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
                 Recheck = settings.Recheck,
                 LatestUI = settings.LatestUI,
                 ApiUser = settings.ApiUser,
-                ApiKey = settings.ApiKey,
+                ApiKey = null,
                 PrepublishCheckEnabled = _siteimproveHelper.GetPrepublishCheckEnabled(settings.ApiUser, settings.ApiKey),
                 PrepublishError = prepublishError,
                 UrlMap = settings.UrlMap,
@@ -54,16 +51,28 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         }
 
         [HttpPost]
+        public ActionResult RotateToken()
+        {
+            var settings = _settingsRepo.GetSetting();
+            var token = _siteimproveHelper.RequestToken();
+            if (string.IsNullOrWhiteSpace(token))
+                return StatusCode(502, "Siteimprove could not issue a token. Existing settings have been retained.");
+            _settingsRepo.SaveToken(token, settings.Recheck, settings.LatestUI,
+                settings.ApiUser, settings.ApiKey, settings.UrlMap);
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
         public ActionResult Save(bool recheck, bool latestUI, string apiUser, string apiKey, IEnumerable<KeyValuePair<string, string>> urlMap)
         {
             var settings = this._settingsRepo.GetSetting();
             settings.Recheck = recheck;
             settings.LatestUI = latestUI;
             settings.ApiUser = apiUser;
-            settings.ApiKey = apiKey;
+            if (!string.IsNullOrWhiteSpace(apiKey)) settings.ApiKey = apiKey;
 
             settings.UrlMap = new Dictionary<string, string>();
-            foreach (var pair in urlMap)
+            foreach (var pair in urlMap ?? Array.Empty<KeyValuePair<string, string>>())
             {
                 if (Uri.TryCreate(pair.Key, UriKind.Absolute, out Uri _) &&
                     Uri.TryCreate(pair.Value, UriKind.Absolute, out Uri _))

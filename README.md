@@ -1,30 +1,41 @@
-# CMS-plugin-Optimizely
+# Siteimprove for Optimizely CMS 13 â€” experimental
 
-The Siteimprove CMS Add-On bridges the gap between the Optimizely content management system (CMS) and the Siteimprove Intelligence Platform. With this seamless integration, your team can fix errors and optimize content directly within the Optimizely editing environment. Once the detected issues have been assessed, you can re-check the relevant page in real-time and assess if further actions are needed.
+**Experimental CMS 13 port. Incomplete and not supported for production. No release date committed.**
 
-The Siteimprove CMS Add-On provides insights into*:
-* Misspellings and broken links
-* Readability levels
-* Accessibility issues (A, AA, AAA conformance level)
-* High-priority policies
-* SEO: technical, content, UX, and mobile 
-* Page visits and page views
-* Feedback rating and comments
+This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.1` identifies a test build; it does not announce a release or a support commitment.
 
-*Data shown in the Siteimprove CMS Add-On depends on the Siteimprove services you are subscribed to.
+Visual Builder is the intended visual editing experience. It has not yet been verified end to end in CMS 13. Cross-origin pre-publish checking and highlighting are not implemented.
 
-About Siteimprove:
+For the existing CMS 12 implementation and installation instructions, see the repository's default branch.
 
-Siteimprove's cloud-based software provides eye-opening insights that empower you and your team to understand, prioritize, and optimize the performance of your website and beyond. With the world’s most comprehensive Digital Presence Optimization (DPO) solution, we provide the clarity and direction needed to run a high-performance website. More than 7,000 organizations around the world trust the Siteimprove Intelligence Platform (SIP) to perfect their digital presence. Learn why at siteimprove.com.
+## Implemented so far
 
-### Installation
-Install the nuget package SiteImprove.Optimizely.Plugin from the Optimizely nuget feed
-Then the tool will be installed and show up on the right in Edit mode and in Admin mode there will be a Siteimprove tool for configuration
+- .NET 10 Razor class library, CMS 13 dependency range, corrected transitive NuGet build target and module packaging.
+- CMS 13 Application-based URL resolution with explicit language, canonical public URLs and preview tokens disabled.
+- System.Text.Json replaces the implicit Newtonsoft dependency.
+- CMS 13 navigation TagHelpers and removal of the hardcoded legacy favicon path.
+- Separate `siteimprove:use` and `siteimprove:admin` policies; page URL lookup checks content read access.
+- POST-only token rotation, antiforgery validation, retained mappings, and replacement-only masked API key input.
+- Stale asynchronous page/token responses no longer overwrite the current author context.
+- Preview document access handles cross-origin restrictions and rejects blank/loading documents.
+- Patched MailKit minimum 4.16.0 because CMS 13.0 selects an affected transitive version (GHSA-9j88-vvj5-vhgr).
 
-### Configuration
-In Admin mode there are a Siteimprove tool to setup configuration
+## Build and test
 
-We allow the following groups access:
-* Administrators, WebAdmins, CmsAdmins, SiteimproveAdmins
+Requirements: .NET 10 SDK and Node.js 22 or later. Restore uses NuGet.org and the Optimizely feed configured in `NuGet.config`.
 
-SiteimproveAdmins is a custom group, where you can assign any group in your solution
+```sh
+dotnet build SiteImprove.Optimizely.Plugin.sln -c Release
+dotnet test SiteImprove.Optimizely.Plugin.sln -c Release
+node --test tests/preview.test.cjs
+```
+
+Builds do not automatically create a NuGet package. To create an experimental package locally for installation testing:
+
+```sh
+dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -c Release -o artifacts/packages
+```
+
+Generated packages are ignored by Git. This branch adds no publishing or release automation.
+
+See [development status and remaining work](docs/cms13-development.md) for validation limits, access changes and the test environment needed.

@@ -75,3 +75,10 @@ UpgradeLog*.htm
 
 # Custom
 SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.zip
+
+# Local development and experimental packages
+.DS_Store
+.dotnet/
+.nuget/
+*.nupkg
+*.snupkg

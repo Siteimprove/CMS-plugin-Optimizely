@@ -30,8 +30,9 @@
                                         <div>
                                             <div class="edit-view__information__card__detail"><span>Token</span>@Model.Token</div>
                                         </div>
-                                        <form action="@Model.PluginUrl" method="post">
-                                            @Html.Hidden("newToken", true)
+                                        <form action="@Model.PluginUrl/RotateToken" method="post">
+                                            @Html.AntiForgeryToken()
+
                                             <button type="submit" class="mdc-ripple-upgraded epi-uif-text-button mdc-button mdc-button--unelevated"><div class="mdc-button__ripple"></div><span class="mdc-button__label">Request new token</span></button>
                                         </form>
                                     </div>
@@ -45,10 +46,11 @@
                                         <div>
                                             <div class="edit-view__information__card__detail"><span>Pre-publish check</span>@(Model.PrepublishCheckEnabled ? "Enabled" : "Disabled")</div>
                                         </div>
-                                                    
+
                                         @if (!Model.PrepublishCheckEnabled)
                                         {
                                             <form action="@Model.PluginUrl/EnablePrepublishCheck" method="post">
+                                            @Html.AntiForgeryToken()
                                                 @Html.Hidden("enablePrepublishCheck", true)
                                                 <button type="submit" class="mdc-ripple-upgraded epi-uif-text-button mdc-button mdc-button--unelevated"><div class="mdc-button__ripple"></div><span class="mdc-button__label">Enable pre-publish check</span></button>
                                             </form>
@@ -80,6 +82,7 @@
                             <strong>Settings</strong>
                         </div>
                         <form action="@Model.PluginUrl/Save" method="post">
+                                            @Html.AntiForgeryToken()
                             <div class="epi-uif-grid-row mdc-layout-grid__inner">
                                 <div class="epi-uif-grid-cell mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
                                     <div class="control">
@@ -102,7 +105,7 @@
                                     <div class="control">
                                         <label class="mdc-ripple-upgraded epi-uif-text-field textfield-wide mdc-text-field mdc-text-field--upgraded mdc-text-field--outlined" aria-labelledby="textfield-API Key-label">
                                             <span class="mdc-text-field__ripple"></span>
-                                            @Html.TextBoxFor(model => model.ApiKey, new { @class = "mdc-text-field__input" })
+                                            @Html.PasswordFor(model => model.ApiKey, new { @class = "mdc-text-field__input", autocomplete = "new-password", placeholder = "Leave blank to keep existing key" })
                                             <div class="mdc-notched-outline mdc-notched-outline--upgraded mdc-notched-outline--notched" notch="46.5">
                                                 <div class="mdc-notched-outline__leading"></div>
                                                 <div class="mdc-notched-outline__notch" style="width: 50.5px;">
@@ -201,7 +204,7 @@
                                         </div>
                                     </div>
                                 </div>
-                  
+
                             <div class="epi-uif-grid-row mdc-layout-grid__inner">
                                 <div class="epi-uif-grid-cell mdc-layout-grid__cell">
                                     <div class="form-bottom">

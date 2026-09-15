@@ -4,6 +4,7 @@ using EPiServer.Core;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
+using EPiServer.Applications;
 using Microsoft.AspNetCore.Http;
 using SiteImprove.Optimizely.Plugin.Helper;
 using SiteImprove.Optimizely.Plugin.Repositories;
@@ -15,6 +16,8 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
     {
         private ISettingsRepository _settingsRepository;
         private bool _homeIsUnPublished = false;
+        private IContentEvents _contentEvents;
+        private IApplicationResolver _applicationResolver;
         private IHttpContextAccessor _httpContextAccessor;
         private ISiteimproveHelper _siteimproveHelper;
 
@@ -24,8 +27,9 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
             _siteimproveHelper = ServiceLocator.Current.GetInstance<ISiteimproveHelper>();
             _httpContextAccessor = ServiceLocator.Current.GetInstance<IHttpContextAccessor>();
 
-            var contentEvents = ServiceLocator.Current.GetInstance<IContentEvents>();
-            contentEvents.PublishedContent += ContentEvents_PublishedContent;
+            _applicationResolver = ServiceLocator.Current.GetInstance<IApplicationResolver>();
+            _contentEvents = ServiceLocator.Current.GetInstance<IContentEvents>();
+            _contentEvents.PublishedContent += ContentEvents_PublishedContent;
         }
 
         private void ContentEvents_PublishedContent(object sender, ContentEventArgs e)
@@ -34,7 +38,7 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
                 return;
 
             // Page is home page
-            if (page.ContentLink.ID == ContentReference.StartPage.ID)
+            if (page.ContentLink.ID == (_applicationResolver.GetByContent(page.ContentLink, false) as IRoutableApplication)?.EntryPoint.ID)
             {
                 if (page.StopPublish.HasValue)
                     this._homeIsUnPublished = page.StopPublish <= DateTime.Now;
@@ -65,6 +69,7 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
 
         public void Uninitialize(InitializationEngine context)
         {
+            if (_contentEvents != null) _contentEvents.PublishedContent -= ContentEvents_PublishedContent;
         }
     }
 }

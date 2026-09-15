@@ -1,4 +1,4 @@
-﻿define([
+define([
     "dojo",
     "dojo/_base/declare",
     "epi/_Module",
@@ -20,6 +20,7 @@
         return declare([_ContextMixin], {
             isPublishing: false,
             isInitialized: false,
+            contextRevision: 0,
             constructor: function () {
                 var scope = this;
                 when(scope.getCurrentContext(),
@@ -60,29 +61,22 @@
              */
             getPreviewDom: function () {
                 var previewIFrame = document.querySelector('iframe[name="sitePreview"]');
-                return previewIFrame && previewIFrame.contentWindow ? previewIFrame.contentWindow.document : null;
+                try {
+                    var dom = previewIFrame && previewIFrame.contentWindow ? previewIFrame.contentWindow.document : null;
+                    return dom && dom.readyState === "complete" && dom.body && dom.URL !== "about:blank" ? dom : null;
+                } catch (error) {
+                    // Cross-origin previews need a frontend bridge. Never substitute the CMS document.
+                    if (error.name === "SecurityError") return null;
+                    throw error;
+                }
             },
             /**
              * Event for shell updates. Gets current context. Should only be called one to initialize the _si plugin.
              */
             contextCurrent: function (content) {
-                if (!request || this.isInitialized)
-                    return;
-
-                if (!content.capabilities || !content.capabilities.isPage)
-                    return;
-
+                if (this.isInitialized) return;
                 this.isInitialized = true;
-                var that = this;
-
-                this.getPageUrl(content.id, content.language)
-                    .then(function (response) {
-                        that.pushSi(response.isDomain ? "domain" : "input", response.url);
-                    },
-                        function (error) {
-                            that.pushSi('input', '');
-
-                        });
+                this.contextChange(content);
             },
 
             /**
@@ -99,14 +93,17 @@
              */
             contextChange: function (content, ctx) {
                 var scope = this;
-
+                var revision = ++this.contextRevision;
+                if (!content || !content.id || (content.capabilities && !content.capabilities.isPage)) {
+                    this.pushSi("input", "", null, revision);
+                    return;
+                }
                 this.getPageUrl(content.id, content.language)
                     .then(function (response) {
-                        
-                        scope.pushSi("input", response.url);
-                        
-                    }, function (error) {
-                        scope.pushSi('input', '');
+                        if (revision !== scope.contextRevision) return;
+                        scope.pushSi("input", response.url || "", null, revision);
+                    }, function () {
+                        if (revision === scope.contextRevision) scope.pushSi("input", "", null, revision);
                     });
             },
 
@@ -128,7 +125,7 @@
             /**
              * Request token from backoffice and sends request to SiteImprove
              */
-            pushSi: function (method, url, callback) {
+            pushSi: function (method, url, callback, revision) {
                 var si = window._si || [];
 
                 if (method === 'clear') { //special case, does not ask for token
@@ -143,6 +140,7 @@
                 } else {
                     request.get(window.epi.routes.getActionPath({ moduleArea: "SiteImprove.Optimizely.Plugin", controller: "Siteimprove", action: "token" }), { handleAs: 'json' })
                         .then(function (response) {
+                            if (revision !== undefined && revision !== this.contextRevision) return;
                             // relay to SiteImprove
                             si.push([
                                 method, url, response, function () {

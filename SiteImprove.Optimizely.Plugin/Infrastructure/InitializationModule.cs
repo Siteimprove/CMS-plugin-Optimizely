@@ -14,7 +14,13 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
     {
         public void ConfigureContainer(ServiceConfigurationContext context)
         {
-            context.Services.AddAuthorization(options => { options.AddPolicy(Constants.SiteImproveAuthorizationPolicy, p => p.RequireRole(Constants.SiteImproveAuthorizationPolicyRoles)); });
+            context.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy(Constants.SiteImproveAuthorizationPolicy,
+                    p => p.RequireAuthenticatedUser().RequireRole(Constants.SiteImproveAuthorizationPolicyRoles));
+                options.AddPolicy(Constants.SiteImproveEditorPolicy,
+                    p => p.RequireAuthenticatedUser().RequireRole(Constants.SiteImproveEditorRoles));
+            });
 
             context.Services.Configure<ProtectedModuleOptions>(
                 pm =>

@@ -1,13 +1,14 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
-    <ItemGroup>
-        <SourceScripts Include="$(MSBuildThisFileDirectory)..\..\contentFiles\any\net6.0\modules\_protected\**\*"/>
-    </ItemGroup>
-
-	<Target Name="CopyZipFiles" BeforeTargets="Build">
-		<Copy
-            SourceFiles="@(SourceScripts)"
-            DestinationFolder="$(MSBuildProjectDirectory)\modules\_protected\%(RecursiveDir)"
-        />
-	</Target>
+<Project>
+  <ItemGroup>
+    <_SiteimproveModuleFiles Include="$(MSBuildThisFileDirectory)../../contentFiles/any/net10.0/modules/_protected/**/*" />
+    <Content Update="@(_SiteimproveModuleFiles)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <Target Name="SiteimproveCopyProtectedModules" BeforeTargets="PrepareForBuild">
+    <Copy SourceFiles="@(_SiteimproveModuleFiles)"
+          DestinationFolder="$(MSBuildProjectDirectory)/modules/_protected/%(RecursiveDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

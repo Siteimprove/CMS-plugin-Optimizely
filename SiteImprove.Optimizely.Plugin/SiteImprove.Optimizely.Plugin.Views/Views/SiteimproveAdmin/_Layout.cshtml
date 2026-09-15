@@ -1,4 +1,4 @@
-﻿@using EPiServer.Framework.Web.Resources
+@using EPiServer.Framework.Web.Resources
 @using EPiServer.Shell.Navigation
 <!DOCTYPE html>
 
@@ -8,7 +8,6 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="/EPiServer/EPiServer.Cms.UI.Admin/clientResources/favicon.ico" rel="icon" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Barlow:300,400,500" />
     @ClientResources.RenderResources("admin", new[] { ClientResourceType.Style })
 
@@ -24,13 +23,11 @@
     </style>
 </head>
 <body class="epi-workspace">
-    @Html.AntiForgeryToken()
-    @Html.Raw(Html.CreatePlatformNavigationMenu())
+    <platform-navigation />
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div @Html.Raw(Html.ApplyPlatformNavigation()) style="z-index:auto;">
-    </div>
-
-    @RenderBody()
+    <platform-navigation-wrapper>
+        @RenderBody()
+    </platform-navigation-wrapper>
 
     @RenderSection("AdditionalScripts", false)
 </body>

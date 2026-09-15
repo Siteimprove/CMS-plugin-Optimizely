@@ -8,8 +8,9 @@ using EPiServer.Core;
 using EPiServer.Logging;
 using EPiServer.ServiceLocation;
 using EPiServer.Web;
+using EPiServer.Applications;
 using EPiServer.Web.Routing;
-using Newtonsoft.Json;
+using System.Text.Json;
 using SiteImprove.Optimizely.Plugin.Repositories;
 
 namespace SiteImprove.Optimizely.Plugin.Helper
@@ -20,15 +21,19 @@ namespace SiteImprove.Optimizely.Plugin.Helper
         private static readonly ILogger _log = LogManager.GetLogger(typeof(SiteimproveHelper));
 
         private readonly ISettingsRepository _settingsRepo;
+        private readonly IUrlResolver _urlResolver;
+        private readonly IApplicationResolver _applicationResolver;
 
-        public SiteimproveHelper(ISettingsRepository settingsRepository)
+        public SiteimproveHelper(ISettingsRepository settingsRepository, IUrlResolver urlResolver, IApplicationResolver applicationResolver)
         {
             _settingsRepo = settingsRepository;
+            _urlResolver = urlResolver;
+            _applicationResolver = applicationResolver;
         }
 
         public string GetOptimizelyVersion()
         {
-            var optimizelyAssembly = Assembly.GetAssembly(typeof(EPiServer.Core.Licensing));
+            var optimizelyAssembly = Assembly.GetAssembly(typeof(IContentRepository));
             var version = optimizelyAssembly.GetName().Version;
             return version.ToString();
         }
@@ -44,21 +49,28 @@ namespace SiteImprove.Optimizely.Plugin.Helper
         {
             try
             {
-                var internalUrl = ServiceLocator.Current.GetInstance<IUrlResolver>().GetUrl(page.ContentLink);
+                var internalUrl = _urlResolver.GetUrl(page.ContentLink, page.Language.Name, new UrlResolverArguments
+                {
+                    ContextMode = ContextMode.Default,
+                    ForceCanonical = true,
+                    ForceAbsolute = true,
+                    AppendPreviewToken = false
+                });
 
                 if (internalUrl == null) //can be null for special pages like settings 
                 {
                     return null;
                 }
 
-                var site = ServiceLocator.Current.GetInstance<ISiteDefinitionResolver>().GetByContent(page.ContentLink, false);
+                var site = _applicationResolver.GetByContent(page.ContentLink, false) as IRoutableApplication;
 
                 if(site == null) //could be null for pages not located under a startpage
                 {
                     return null;
                 }
 
-                var siteUrl = site.SiteUrl;
+                var siteUrl = site.GetPrimaryHost(page.Language)?.Url ?? site.Url;
+                if (siteUrl == null) return null;
 
                 var settings = _settingsRepo.GetSetting();
                 if(settings.UrlMap != null)
@@ -112,7 +124,7 @@ namespace SiteImprove.Optimizely.Plugin.Helper
                     if(response.IsSuccessStatusCode)
                     {
                         content = response.Content.ReadAsStringAsync().Result;
-                        enabled = JsonConvert.DeserializeObject<dynamic>(content)["is_ready"];
+                        enabled = JsonSerializer.Deserialize<JsonElement>(content).GetProperty("is_ready").GetBoolean();
                     } 
                     else
                     {
@@ -166,7 +178,7 @@ namespace SiteImprove.Optimizely.Plugin.Helper
                     // Request a token from Siteimprove
                     var version = GetOptimizelyVersion();
                     string data = client.GetStringAsync(string.Format("{0}?cms=Optimizely {1}", Constants.SiteImproveTokenUrl, version)).Result;
-                    response = JsonConvert.DeserializeObject<dynamic>(data)["token"];
+                    response = JsonSerializer.Deserialize<JsonElement>(data).GetProperty("token").GetString();
                 }
             }
             catch (Exception ex)
@@ -183,8 +195,9 @@ namespace SiteImprove.Optimizely.Plugin.Helper
             {
                 using (var client = new HttpClient())
                 {
-                    var content = new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json");
+                    var content = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
                     var response = client.PostAsync(Constants.SiteImproveRecheckUrl, content).Result;
+                    response.EnsureSuccessStatusCode();
                 }
                 _log.Information($"Siteimprove recheck called with type {type} for url {url}");
             }

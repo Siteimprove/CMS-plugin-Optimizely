@@ -31,7 +31,8 @@ namespace SiteImprove.Optimizely.Plugin.Repositories
                 {
                     var siteimproveHelper = ServiceLocator.Current.GetInstance<ISiteimproveHelper>();
                     string token = siteimproveHelper.RequestToken();
-                    SaveToken(token);
+                    SaveToken(token, settings?.Recheck ?? false, settings?.LatestUI ?? true,
+                        settings?.ApiUser, settings?.ApiKey, settings?.UrlMap);
 
                     return token;
                 }
@@ -57,7 +58,7 @@ namespace SiteImprove.Optimizely.Plugin.Repositories
                     return;
                 }
 
-                SettingStore.Save(new Settings { Token = token, Recheck = recheck, LatestUI = latestUI, ApiUser = apiUser, ApiKey = apiKey });
+                SettingStore.Save(new Settings { Token = token, Recheck = recheck, LatestUI = latestUI, ApiUser = apiUser, ApiKey = apiKey, UrlMap = urlMap });
             }
         }
 
@@ -71,7 +72,8 @@ namespace SiteImprove.Optimizely.Plugin.Repositories
                 {
                     var siteimproveHelper = ServiceLocator.Current.GetInstance<ISiteimproveHelper>();
                     string token = siteimproveHelper.RequestToken();
-                    SaveToken(token);
+                    SaveToken(token, settings?.Recheck ?? false, settings?.LatestUI ?? true,
+                        settings?.ApiUser, settings?.ApiKey, settings?.UrlMap);
                     settings = SettingStore.LoadAll<Settings>().ToArray().FirstOrDefault(c => c.Token == token);
                 }
 
