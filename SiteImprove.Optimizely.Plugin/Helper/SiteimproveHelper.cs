@@ -50,9 +50,19 @@ namespace SiteImprove.Optimizely.Plugin.Helper
 
         public string GetExternalUrl(PageData page)
         {
+            return GetExternalUrl(page, null);
+        }
+
+        public string GetExternalUrl(PageData page, string language)
+        {
             try
             {
-                var internalUrl = ServiceLocator.Current.GetInstance<IUrlResolver>().GetUrl(page.ContentLink);
+                // Fallback content can have a different language from the editor's selected region.
+                var urlLanguage = string.IsNullOrEmpty(language) ? page.Language?.Name : language;
+                var internalUrl = ServiceLocator.Current.GetInstance<IUrlResolver>().GetUrl(
+                    page.ContentLink.ToReferenceWithoutVersion(),
+                    urlLanguage,
+                    new UrlResolverArguments { ContextMode = ContextMode.Default });
 
                 if (internalUrl == null) //can be null for special pages like settings 
                 {

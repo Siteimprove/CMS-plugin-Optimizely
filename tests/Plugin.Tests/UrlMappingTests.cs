@@ -44,8 +44,8 @@ public class UrlMappingTests : ServiceFixture
     {
         var a = ContentFixture.Page(42, 7);
         var b = ContentFixture.Page(43, 9);
-        urls.Setup(x => x.GetUrl(a.ContentLink, It.IsAny<string>(), It.IsAny<UrlResolverArguments>())).Returns("/en/news");
-        urls.Setup(x => x.GetUrl(b.ContentLink, It.IsAny<string>(), It.IsAny<UrlResolverArguments>())).Returns("/da/nyheder");
+        urls.Setup(x => x.GetUrl(new ContentReference(42), It.IsAny<string>(), It.IsAny<UrlResolverArguments>())).Returns("/en/news");
+        urls.Setup(x => x.GetUrl(new ContentReference(43), It.IsAny<string>(), It.IsAny<UrlResolverArguments>())).Returns("/da/nyheder");
         sites.Setup(x => x.GetByContent(a.ContentLink, false)).Returns(new SiteDefinition { SiteUrl = new Uri("https://cms-a.example") });
         sites.Setup(x => x.GetByContent(b.ContentLink, false)).Returns(new SiteDefinition { SiteUrl = new Uri("https://cms-b.example") });
         settings.Setup(x => x.GetSetting()).Returns(new Settings { UrlMap = new() {
