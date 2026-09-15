@@ -95,9 +95,10 @@ test('draft evidence ignores messages outside the real SDK origin and tracks eac
   receive({ frame: { url: () => 'https://unrelated.example.test/' } }, { marker: 'draft-one' });
   receive({ frame: { url: () => 'https://contentassistant.eu.siteimprove.com/' } }, { marker: 'unrelated' });
   assert.equal(evidence['draft-one'], 0);
-  receive({ frame: { url: () => 'https://contentassistant.eu.siteimprove.com/' } }, { marker: 'draft-two' });
+  receive({ frame: { url: () => 'https://contentassistant.eu.siteimprove.com/' } }, { marker: 'draft-two', imagePresent: true, fixedAlternativePresent: true });
   assert.equal(evidence['draft-one'], 0);
   assert.equal(evidence['draft-two'], 1);
+  assert.deepEqual(evidence.captures['draft-two'], { imagePresent: true, fixedAlternativePresent: true });
 });
 
 test('live diagnostics accept only known booleans and HTTP status codes', async () => {
@@ -105,4 +106,18 @@ test('live diagnostics accept only known booleans and HTTP status codes', async 
   assert.deepEqual(safeDiagnostics({ pollStatus: 200, pollAuthenticated: true, body: 'private-value' }),
     { pollAuthenticated: true, pollStatus: 200 });
   assert.deepEqual(safeDiagnostics({ pollStatus: 123456, entitlementStatus: 0, pollAuthenticated: 'private-value' }), {});
+});
+
+test('SDK asset diagnostics exclude account routes, origins, credentials and query strings', async () => {
+  const { publicSdkAsset, safeDiagnostics } = await import('../live/diagnostics.mjs');
+  const asset = 'https://contentassistant.eu.siteimprove.com/assets/index-abcd1234.js';
+  assert.equal(publicSdkAsset(asset + '?token=private-value'), asset);
+  for (const value of ['https://attacker.example/assets/index.js',
+    'https://user:private-value@contentassistant.eu.siteimprove.com/assets/index.js',
+    'https://contentassistant.eu.siteimprove.com/cms/private-value.js',
+    'https://contentassistant.eu.siteimprove.com/assets/private-value.js',
+    asset + '#private-value', 'not-a-url']) assert.equal(publicSdkAsset(value), null);
+  const result = safeDiagnostics({ sdkAssets: [asset, asset + '?token=private-value', 'private-value'], url: 'private-value' });
+  assert.deepEqual(result, { sdkAssets: [asset] });
+  assert.equal(JSON.stringify(result).includes('private-value'), false);
 });

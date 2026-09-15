@@ -3,6 +3,7 @@ import { openLiveEditor } from './editor.mjs';
 import { settings } from './settings.mjs';
 import { observeDraft } from './prepublish.mjs';
 import { openAccessibilityResults, resultViewState } from './result-view.mjs';
+import { publicSdkAsset } from './diagnostics.mjs';
 import { imageAlternativeRule } from './accessibility-rule.mjs';
 
 async function scan(page, evidence, marker) {
@@ -32,6 +33,11 @@ test('prepublish detects WCAG 1.1.1 image alternative issue and clears it after 
   const fixedMarker = process.env.CMS_DRAFT_FIXED_MARKER;
   expect(Boolean(marker && fixedMarker && marker !== fixedMarker)).toBe(true);
   const evidence = await observeDraft(context, config.cmsOrigin, [marker, fixedMarker]);
+  const sdkAssets = new Set();
+  page.on('response', response => {
+    const asset = publicSdkAsset(response.url());
+    if (asset) sdkAssets.add(asset);
+  });
   await openLiveEditor(page, context);
   try {
     const preview = page.frameLocator('iframe[name="sitePreview"]');
@@ -76,6 +82,10 @@ test('prepublish detects WCAG 1.1.1 image alternative issue and clears it after 
       expect(await (await page.request.get(publishedPath)).text()).not.toContain(fixedMarker);
     });
   } finally {
+    test.info().annotations.push({ type: 'live-diagnostics', description: JSON.stringify({ sdkAssets: [...sdkAssets],
+      firstDraftImagePresent: evidence.captures[marker].imagePresent,
+      fixedDraftImagePresent: evidence.captures[fixedMarker].imagePresent,
+      fixedDraftAlternativePresent: evidence.captures[fixedMarker].fixedAlternativePresent }) });
     try {
       const state = await resultViewState(page.frameLocator('iframe.si-iframe-element'));
       test.info().annotations.push({ type: 'live-diagnostics', description: JSON.stringify(state) });

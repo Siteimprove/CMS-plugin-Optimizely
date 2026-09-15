@@ -17,6 +17,8 @@ export async function openAccessibilityResults(overlay) {
 export async function resultViewState(overlay) {
   const issue = overlay.getByText(imageAlternativeRule.label, { exact: true });
   return {
+    prepublishViewSelected: await overlay.getByRole('tab', { name: /Prepublish/i, selected: true }).count() > 0,
+    livePageViewSelected: await overlay.getByRole('tab', { name: /Live page/i, selected: true }).count() > 0,
     accessibilityCategoryVisible: await category(overlay).isVisible(),
     imageIssuePresent: await issue.count() > 0,
     imageIssueVisible: await issue.filter({ visible: true }).count() > 0,
