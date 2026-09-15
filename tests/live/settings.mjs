@@ -22,7 +22,8 @@ export function allowedRequest(value) {
     && ['siteimprove.com', 'siteimprove.net'].some(host => url.hostname === host || url.hostname.endsWith('.' + host)));
 }
 
-export function isReport(value, expectedUrl) {
+export function isReport(value, requestedUrl, expectedUrl) {
   return value?.authed === true && value.error === 'None' && Number.isFinite(value.issues)
-    && value.issues >= 0 && value.mainUrl === expectedUrl;
+    && value.issues >= 0 && requestedUrl === expectedUrl
+    && typeof value.mainUrl === 'string' && value.mainUrl.trim().length > 0;
 }

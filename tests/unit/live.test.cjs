@@ -29,15 +29,17 @@ test('missing credentials and unsupported or mismatched public paths fail closed
   }
 });
 
-test('only authenticated successful data for the expected page proves report readiness', async () => {
+test('report readiness matches the requested page without treating mainUrl as its identity', async () => {
   const { isReport } = await import('../live/settings.mjs');
   const expected = fixture().SITEIMPROVE_CRAWLED_URL;
-  const body = { authed: true, error: 'None', issues: 0, mainUrl: expected };
-  assert.equal(isReport(body, expected), true);
+  const body = { authed: true, error: 'None', issues: 0, mainUrl: 'https://my2.siteimprove.com/report' };
+  assert.equal(isReport(body, expected, expected), true);
   for (const patch of [{ authed: false }, { error: 'Failed' }, { issues: -1 },
-    { issues: '0' }, { mainUrl: 'https://other.example.test/' }]) {
-    assert.equal(isReport({ ...body, ...patch }, expected), false);
+    { issues: '0' }, { mainUrl: '' }, { mainUrl: null }, { mainUrl: '   ' }]) {
+    assert.equal(isReport({ ...body, ...patch }, expected, expected), false);
   }
+  for (const requested of [null, 'https://other.example.test/', expected + '?preview=1'])
+    assert.equal(isReport(body, requested, expected), false);
 });
 
 test('browser requests reject lookalike login domains and unrelated hosts', async () => {

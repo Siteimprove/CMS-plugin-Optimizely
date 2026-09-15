@@ -34,10 +34,11 @@ export async function openLiveEditor(page, context) {
           diagnostic.pollOk = response.ok();
           const body = await response.json();
           diagnostic.pollAuthenticated = body?.authed === true;
-          diagnostic.pollUrlMatches = url.searchParams.get('url') === config.crawledUrl && body?.mainUrl === config.crawledUrl;
+          diagnostic.pollUrlMatches = url.searchParams.get('url') === config.crawledUrl;
+          diagnostic.pollMainUrlPresent = typeof body?.mainUrl === 'string' && body.mainUrl.trim().length > 0;
           diagnostic.pollIssueCountValid = Number.isFinite(body?.issues) && body.issues >= 0;
           diagnostic.pollErrorNone = body?.error === 'None';
-          if (diagnostic.pollUrlMatches && response.ok() && isReport(body, config.crawledUrl)) reportReceived = true;
+          if (diagnostic.pollUrlMatches && response.ok() && isReport(body, url.searchParams.get('url'), config.crawledUrl)) reportReceived = true;
         }
       } catch { /* Invalid or failed responses cannot satisfy report readiness. */ }
     });
