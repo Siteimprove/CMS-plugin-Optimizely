@@ -7,7 +7,7 @@ const stages = new Set(['live: entitlement', 'live: CMS login', 'live: public UR
   'live: draft preview', 'live: open login popup', 'live: identity username',
   'live: identity password', 'live: submit login', 'live: report panel', 'live: mapped report data',
   'live: start prepublish', 'live: draft handoff', 'live: loading-state exit',
-  'live: WCAG 1.1.1 issue detected', 'live: WCAG 1.1.1 issue cleared']);
+  'live: accessibility results', 'live: WCAG 1.1.1 issue detected', 'live: WCAG 1.1.1 issue cleared']);
 
 export default class SafeReporter {
   results = [];
@@ -20,7 +20,7 @@ export default class SafeReporter {
     let diagnostics = {};
     for (const annotation of result.annotations ?? []) {
       if (annotation.type !== 'live-diagnostics') continue;
-      try { diagnostics = safeDiagnostics(JSON.parse(annotation.description)); } catch {}
+      try { Object.assign(diagnostics, safeDiagnostics(JSON.parse(annotation.description))); } catch {}
     }
     this.results.push({ test: test.title, status: result.status, durationMs: result.duration,
       lastStage: this.stages.get(result) ?? null, diagnostics });

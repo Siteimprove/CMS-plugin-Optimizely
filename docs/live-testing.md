@@ -56,3 +56,5 @@ The earlier smoke baseline followed the [WordPress live runner](https://github.c
 After login, the test waits for authenticated report data for the mapped URL before opening the report panel, matching the WordPress flow. Diagnostic fields are independently filtered by the reporter; they contain no raw response fields, account text or URLs.
 
 Report identity is checked against the exact `url` parameter on the SDK polling request. Like WordPress, the response must be authenticated, error-free, include a nonnegative numeric issue count and a nonempty `mainUrl`; that response field is not assumed to equal the crawled page URL.
+
+The test opens the Accessibility results section before asserting the documented image-alternative rule. Safe result diagnostics report only whether the category, target issue, alert, running/recheck controls or nested frames are present/visible. Setup and result diagnostics are merged through the same allowlist; no result text or URLs are retained.

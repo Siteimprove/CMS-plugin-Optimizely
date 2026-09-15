@@ -63,7 +63,8 @@ test('live reporting discards raw failures and attachments', async () => {
     reporter.onError(new Error('private-value'));
     const result = { status: 'failed', duration: 1,
       annotations: [{ type: 'live-diagnostics', description: JSON.stringify({ entitlementStatus: 429,
-        panelVisible: false, pollStatus: 'private-value', url: 'private-value', token: 'private-value' }) }],
+        panelVisible: false, pollStatus: 'private-value', url: 'private-value', token: 'private-value' }) },
+        { type: 'live-diagnostics', description: JSON.stringify({ imageIssuePresent: true, imageIssueVisible: false, privateText: 'private-value' }) }],
       error: { message: 'private-value' }, attachments: [{ body: 'private-value' }] };
     reporter.onStepBegin({}, result, { category: 'test.step', title: 'live: CMS login' });
     reporter.onStepBegin({}, result, { category: 'test.step', title: 'private-value' });
@@ -74,7 +75,7 @@ test('live reporting discards raw failures and attachments', async () => {
     assert.equal(output.includes('private-value'), false);
     assert.equal(JSON.parse(output).tests[0].status, 'failed');
     assert.equal(JSON.parse(output).tests[0].lastStage, 'live: CMS login');
-    assert.deepEqual(JSON.parse(output).tests[0].diagnostics, { panelVisible: false, entitlementStatus: 429 });
+    assert.deepEqual(JSON.parse(output).tests[0].diagnostics, { panelVisible: false, entitlementStatus: 429, imageIssuePresent: true, imageIssueVisible: false });
   } finally { process.chdir(cwd); fs.rmSync(temp, { recursive: true, force: true }); }
 });
 

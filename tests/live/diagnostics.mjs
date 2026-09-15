@@ -1,6 +1,7 @@
 const flags = ['entitlementReady', 'pollSeen', 'pollOk', 'pollAuthenticated', 'pollUrlMatches',
   'pollMainUrlPresent', 'pollIssueCountValid', 'pollErrorNone', 'panelFramePresent', 'panelVisible', 'launcherVisible',
-  'blockedExternalRequest'];
+  'blockedExternalRequest', 'accessibilityCategoryVisible', 'imageIssuePresent', 'imageIssueVisible',
+  'resultAlertVisible', 'resultHasNestedFrame', 'resultRunning', 'resultRecheckVisible'];
 
 // Account text and arbitrary response fields must never enter public artifacts.
 export function safeDiagnostics(value) {
