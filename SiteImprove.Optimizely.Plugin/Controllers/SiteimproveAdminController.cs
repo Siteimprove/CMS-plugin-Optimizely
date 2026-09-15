@@ -77,7 +77,7 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
 
             _settingsRepo.SaveToken(settings.Token, settings.Recheck, settings.LatestUI, settings.ApiUser, settings.ApiKey, settings.UrlMap);
 
-            return RedirectToAction("Index");
+            return Redirect(_moduleResourceResolver.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin"));
         }
 
         private static bool IsWebUrl(string value)
@@ -99,10 +99,10 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
 
             if (!success)
             {
-                return RedirectToAction("Index", new { prepublishError = true });
+                return Redirect(_moduleResourceResolver.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin") + "?prepublishError=true");
             }
 
-            return RedirectToAction("Index");
+            return Redirect(_moduleResourceResolver.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin"));
         }
     }
 }
