@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <Copyright>Copyright © SiteImprove 2024</Copyright>
     <Company>SiteImprove</Company>
     <Authors>SiteImprove</Authors>
@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="images\icon.png" Pack="true" PackagePath="\" />
-    <None Include="SiteImprove.Optimizely.Plugin.targets" Pack="true" PackagePath="\build\net6.0\" />
+    <None Include="images/icon.png" Pack="true" PackagePath="/" />
+    <None Include="SiteImprove.Optimizely.Plugin.targets" Pack="true" PackagePath="/build/net6.0/" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,21 +26,22 @@
 
   <ItemGroup>
     <Content
-      Include="modules\_protected\SiteImprove.Optimizely.Plugin\SiteImprove.Optimizely.Plugin.zip">
+      Include="modules/_protected/SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.zip">
       <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>content/modules/_protected/SiteImprove.Optimizely.Plugin/;contentFiles/any/net6.0/modules/_protected/SiteImprove.Optimizely.Plugin/</PackagePath>
     </Content>
   </ItemGroup>
 
   <ItemGroup>
     <Content Update="packages.lock.json" Pack="false" CopyToOutputDirectory="Never" />
-    <Content Remove="modules\_protected\SiteImprove.Optimizely.Plugin_files\**\*" />
+    <Content Remove="modules/_protected/SiteImprove.Optimizely.Plugin_files/**/*" />
   </ItemGroup>
 
-  <Target Name="ZipPluginContent" AfterTargets="BeforeBuild">
-    <Message Text="Zipping module" />
+  <Target Name="ZipPluginContent" BeforeTargets="BeforeBuild">
+    <MakeDir Directories="modules/_protected/SiteImprove.Optimizely.Plugin" />
     <ZipDirectory Overwrite="true"
-      SourceDirectory="modules\_protected\SiteImprove.Optimizely.Plugin_files"
-      DestinationFile="modules\_protected\SiteImprove.Optimizely.Plugin\SiteImprove.Optimizely.Plugin.zip" />
+      SourceDirectory="modules/_protected/SiteImprove.Optimizely.Plugin_files"
+      DestinationFile="modules/_protected/SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.zip" />
   </Target>
 
 </Project>

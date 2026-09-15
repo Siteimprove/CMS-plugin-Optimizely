@@ -111,3 +111,7 @@ Still validate installation/module loading in a real CMS, actual editor event
 timing, database persistence, and representative CMS configurations. A separate
 authenticated Siteimprove smoke test should resolve a known public page and
 confirm a fresh Prepublish scan detects a deliberate issue in the current draft.
+
+## Generated-package CMS integration
+
+See [build and CMS integration tests](docs/testing.md) for the separate real-CMS suite. It installs the generated NuGet package and uses controlled external responses. The existing commands above retain their functional-test scope.

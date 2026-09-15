@@ -30,3 +30,7 @@ We allow the following groups access:
 * Administrators, WebAdmins, CmsAdmins, SiteimproveAdmins
 
 SiteimproveAdmins is a custom group, where you can assign any group in your solution
+
+### Build and integration tests
+
+See [the disposable build and CMS test setup](docs/testing.md) and [current validation results](docs/validation.md). Ordinary tests use a controlled Siteimprove overlay and do not validate real Siteimprove reports. Package publication remains a separate step.

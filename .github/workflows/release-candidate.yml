@@ -1,0 +1,72 @@
+name: Release candidate
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version matching the project at this ref (for example 4.3.4)'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  validate-version:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          python3 - <<'PY'
+          import os, re, xml.etree.ElementTree as ET
+          version = os.environ['INPUT_VERSION'] or os.environ['GITHUB_REF_NAME'].removeprefix('v')
+          assert re.fullmatch(r'\d+\.\d+\.\d+', version), 'Expected a three-part release version'
+          project = ET.parse('SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj')
+          assert project.findtext('./PropertyGroup/Version') == version, 'Tag/input must match project version'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('version=' + version + '\n')
+          PY
+  functional:
+    needs: validate-version
+    uses: ./.github/workflows/functional-tests.yml
+  candidate:
+    needs: [validate-version, functional]
+    uses: ./.github/workflows/ci.yml
+    with:
+      release-version: ${{ needs.validate-version.outputs.version }}
+  draft-release:
+    name: Create draft GitHub Release
+    needs: [validate-version, functional, candidate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    concurrency:
+      group: release-draft-${{ needs.validate-version.outputs.version }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: candidate
+          path: artifacts/candidate
+      - name: Attach the verified package without rebuilding
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.validate-version.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 scripts/draft_release.py \
+            --version "$RELEASE_VERSION" \
+            --commit "$GITHUB_SHA" \
+            --repository "$GITHUB_REPOSITORY" \
+            --run-url "$RUN_URL"

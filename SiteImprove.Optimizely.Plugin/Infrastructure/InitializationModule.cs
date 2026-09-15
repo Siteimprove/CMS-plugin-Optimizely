@@ -14,6 +14,7 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
     {
         public void ConfigureContainer(ServiceConfigurationContext context)
         {
+            context.Services.AddHttpClient("Siteimprove");
             context.Services.AddAuthorization(options => { options.AddPolicy(Constants.SiteImproveAuthorizationPolicy, p => p.RequireRole(Constants.SiteImproveAuthorizationPolicyRoles)); });
 
             context.Services.Configure<ProtectedModuleOptions>(

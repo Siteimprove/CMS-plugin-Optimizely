@@ -1,0 +1,7 @@
+@using EPiServer.Web.Mvc.Html
+@model CmsHost.StandardPage
+<!doctype html>
+<html lang="en">
+<head><title>@Model.Name</title></head>
+<body><main><h1>@Html.PropertyFor(p => p.Heading)</h1></main></body>
+</html>

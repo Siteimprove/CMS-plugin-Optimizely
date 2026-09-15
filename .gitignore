@@ -77,3 +77,9 @@ UpgradeLog*.htm
 
 # Custom
 SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.zip
+# Disposable integration state
+playwright-report/
+.nuget-ci/
+__pycache__/
+tests/CmsHost/App_Data/
+tests/CmsHost/modules/
