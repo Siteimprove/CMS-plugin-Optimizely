@@ -1,15 +1,14 @@
 Title: Verify generated packages in a disposable CMS test host
 
-Build and verify a fresh NuGet candidate, then install that exact package into a disposable CMS 12 application for browser tests. Add package-content checks and separate CMS and release-candidate workflows. Preserve the public framework and dependency range.
+Build a fresh NuGet candidate, verify its contents, and install that exact package into a disposable CMS 12 application for browser tests. Preserve the public framework/dependency range and existing functional tests. Add a separate release-candidate workflow with no publishing step.
 
-Based on main after #11, #12 and #13 merged. Preserve the existing backend/browser suites and reuse #13's HTTP request factory. The new CMS tests have a separate Playwright configuration; release candidates also run the existing functional suite.
+The CMS tests use real login, pages and persisted settings with controlled Siteimprove responses. They do not verify live reports.
 
 Validation on September 15:
 
-- 57 backend cases passed on each of .NET 6 and .NET 8, including one new HTTP client registration test; all 20 existing Chromium/Firefox functional checks and 10 non-blocking observations passed.
-- 4 JavaScript and 3 Python unit tests passed. A fresh package passed verification, and all 6 damaged-package controls were rejected.
-- The CMS host compiled with no warnings/errors; installed DLL/ZIP bytes and assembly identity matched the candidate.
-- All three workflows passed actionlint; 5 CMS browser tests were discovered.
-- Real CMS startup, login and browser execution remain unverified because Docker is unavailable locally.
+- [Linux package/CMS workflow passed](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34962695111): package checks, six damaged-package controls, exact-package installation, CMS startup and all five editor tests.
+- [Functional workflow passed](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34962695101): 57 backend cases on each of .NET 6 and .NET 8, 20 browser checks and separate non-blocking observations.
+- Four JavaScript and three Python unit tests passed. All three workflow definitions passed actionlint.
+- Smoke-script execution took 57.45 seconds including database startup, CMS readiness, browser tests and cleanup; earlier dependency installation/build steps are excluded.
 
-The CMS suite uses controlled Siteimprove responses; it does not verify live reports. Keep this PR in draft until the Linux CMS job passes. See `docs/validation.md` for the candidate and host validation record.
+See `docs/validation.md` for the tested source, candidate checksum and limitations. Release-candidate dispatch and live Siteimprove reports remain untested. No package was published.

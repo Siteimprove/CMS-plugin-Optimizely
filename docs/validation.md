@@ -1,5 +1,27 @@
 # Validation record
 
+## Successful Linux CMS run
+
+On September 15, both [package/CMS integration](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34962695111) and [functional tests](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/34962695101) passed for PR head `f2ab4f8a772898d68273029517309cdb75a771fb`.
+
+- A clean candidate built and passed package checks and all six damaged-package controls.
+- The CMS host installed the candidate through NuGet; DLL/ZIP bytes and assembly identity matched.
+- SQL schema creation, seed content, CMS startup and real login completed.
+- All five CMS browser tests passed, with zero failures or skips, in 27.41 seconds. Coverage includes settings persistence, mapped page context, current preview callbacks, repeated navigation, delayed/failed overlay loading and restricted-user access.
+- The functional workflow passed both .NET targets and both browsers.
+
+GitHub tested a temporary merge commit, which is the source recorded in the package manifest:
+
+- Source: `732eff689d77d7b17bce89c29f3ff43a7ded70b2`
+- Candidate: `4.3.4-ci.34962695111.1.g732eff689d77`
+- SHA-256: `41ff1f0260353ed1245ddb0d8a2c601e5301dc7cac22ddded29adacd97c6066a`
+
+The smoke script measured SQL readiness at 21.06 seconds, CMS readiness at 27.4 seconds, and tests/cleanup complete at 57.45 seconds from script start. SQL memory was 778.7 MiB at the recorded sample. These timings exclude earlier package build, host restore and browser installation steps.
+
+The first two Linux runs exposed test assumptions about the status-card text and collapsed navigation pane. Those selectors were corrected; production plugin code was unchanged. The completed run uses controlled Siteimprove responses and does not verify live reports. Release-candidate dispatch and other CMS/browser baselines remain untested. No package was published.
+
+## Earlier local validation
+
 Validated on September 15, 2026, after rebasing `build/cms-integration-reconciled` onto merged main at `b23e48e7b12d8b3170d4595be28b61c16b39eeef`. Tested source commit: `04bd93a81da3aaae75610a9ddb7933003627774a`.
 
 The rebase retained the lockfile exclusion merged in #12 and the draft's portable package paths. The resulting source tree matches the previously reviewed automation draft. No branch was pushed, PR opened, or package published during this validation.
@@ -38,4 +60,4 @@ The candidate was built from clean committed source (`workingTree=false`). Its m
 
 Build outputs, package binaries, local caches, browser evidence and disposable CMS state remain ignored. The original draft and prior local validation artifacts were preserved.
 
-Before merging, run a fresh Linux job that builds the package, installs it, initializes the CMS and passes the real editor tests. Keep the proposed PR in draft and do not require `Package and CMS checks` until that run succeeds. The suite controls external responses and does not establish live Siteimprove report behavior.
+The successful Linux run above closes the real-CMS acceptance gap recorded by this earlier local validation. Final PR review and any branch-protection changes remain separate.
