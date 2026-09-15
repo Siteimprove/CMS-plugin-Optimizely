@@ -102,3 +102,9 @@ Each package is installed unchanged into two .NET 8 CMS hosts. Both run all six 
 Use `python3 scripts/host.py --profile cms12-2025` to select the older host locally. Each profile has a committed dependency lock. CMS Core helper packages are pinned together to avoid conflicting exact routing dependencies. CI retains separate evidence artifacts per profile and requires both to pass.
 
 This is a compatibility sample, not a claim to cover every version in the package's supported range. It adds one CMS job, not a cross-product of browsers, runtimes and live services. CMS 13 remains outside this release's dependency range. Live scans run on the newer profile only.
+
+### Package upgrade
+
+A separate required job runs the published 4.3.3 package and then the candidate on `cms12-current`, keeping the same SQL database and application data. The baseline comes from the official Optimizely feed and is verified against a pinned SHA-256 before installation. Both installed DLLs and module ZIPs must match their respective packages.
+
+The baseline saves synthetic configuration through its own settings repository and creates published content plus an unpublished draft. After replacement, seeding is disabled. Playwright checks the original settings record, token, API fields, flags, URL mappings, editor login and draft reference/content, then checks the candidate settings UI and preview callback. Published content must remain unchanged. Siteimprove responses remain controlled. This covers one plugin upgrade path, not a CMS upgrade or every historical plugin version.

@@ -19,20 +19,28 @@ PROFILES = {
 }
 
 
-def prepare(profile='cms12-current'):
+def prepare(profile='cms12-current', baseline=False):
     ui_version, core_version, lock_path = PROFILES[profile]
     properties = [f'-p:CmsUiVersion={ui_version}', f'-p:CmsCoreVersion={core_version}']
     candidate = ROOT / 'artifacts/candidate'
     manifest = json.loads((candidate / 'manifest.json').read_text())
-    package = candidate / manifest['package']
-    if verify(package, ROOT, manifest['packageVersion']) != manifest['sha256']:
-        raise ValueError('Candidate checksum mismatch')
-    host = ROOT / 'artifacts/host'
+    version = manifest['packageVersion']
+    if baseline:
+        from upgrade_baseline import VERSION, download
+        if version == VERSION:
+            raise ValueError('Upgrade requires different baseline and candidate versions')
+        package = download(ROOT)
+        version = VERSION
+        candidate = package.parent
+    else:
+        package = candidate / manifest['package']
+        if verify(package, ROOT, version) != manifest['sha256']:
+            raise ValueError('Candidate checksum mismatch')
+    host = ROOT / ('artifacts/host-baseline' if baseline else 'artifacts/host')
     if host.exists():
         raise ValueError('artifacts/host already exists; move it aside before preparing a fresh host')
     shutil.copytree(ROOT / 'tests/CmsHost', host, ignore=shutil.ignore_patterns('bin', 'obj', 'modules', 'App_Data'))
     lock = json.loads((host / lock_path).read_text())
-    version = manifest['packageVersion']
     lock['dependencies']['net8.0'][PACKAGE] = {
         'type': 'Direct', 'requested': f'[{version}, {version}]', 'resolved': version,
         'contentHash': base64.b64encode(hashlib.sha512(package.read_bytes()).digest()).decode(),
@@ -67,11 +75,13 @@ def prepare(profile='cms12-current'):
     subprocess.run(['dotnet', 'bin/Release/net8.0/CmsHost.dll', '--verify-package', version], cwd=host, env=env, check=True)
     evidence = ROOT / 'artifacts/evidence'
     evidence.mkdir(exist_ok=True)
-    shutil.copy2(host / 'packages.lock.json', evidence / 'host.packages.lock.json')
+    shutil.copy2(host / 'packages.lock.json', evidence / ('baseline.packages.lock.json' if baseline else 'host.packages.lock.json'))
     print('Host compiled; candidate DLL and consumer-installed module ZIP match exactly.')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--profile', choices=PROFILES, default='cms12-current')
-    prepare(parser.parse_args().profile)
+    parser.add_argument('--baseline', action='store_true')
+    args = parser.parse_args()
+    prepare(args.profile, args.baseline)

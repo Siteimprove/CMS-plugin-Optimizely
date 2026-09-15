@@ -61,6 +61,19 @@ public class Startup
                 Seed.Ready && context.Request.Headers["X-Cms-Test"] == "prepublish"
                     ? Results.Ok(new { contentId = Seed.FixLiveDraft(content) }) : Results.NotFound())
                 .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
+            endpoints.MapGet("/test/upgrade-settings", (SiteImprove.Optimizely.Plugin.Repositories.ISettingsRepository repository) =>
+            {
+                if (Environment.GetEnvironmentVariable("CMS_UPGRADE_PHASE") is not ("before" or "after"))
+                    return Results.NotFound();
+                var settings = repository.GetSetting();
+                var assembly = typeof(SiteImprove.Optimizely.Plugin.Helper.SiteimproveHelper).Assembly;
+                return Results.Ok(new
+                {
+                    version = assembly.GetName().Version?.ToString(3),
+                    settings = new { recordId = settings.Id.ToString(), settings.Token, settings.Recheck,
+                        settings.LatestUI, settings.ApiUser, settings.ApiKey, settings.UrlMap }
+                });
+            }).RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
             endpoints.MapGet("/test/ready", () => Seed.Ready ? Results.Ok() : Results.StatusCode(503));
         });
     }

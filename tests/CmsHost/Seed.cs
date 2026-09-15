@@ -18,6 +18,12 @@ public static class Seed
 
     public static async Task RunAsync(IServiceProvider provider)
     {
+        if (Environment.GetEnvironmentVariable("CMS_UPGRADE_PHASE") == "after")
+        {
+            // Preserve the existing database exactly: no users, settings, pages or drafts are reseeded.
+            Ready = true;
+            return;
+        }
         using var scope = provider.CreateScope();
         var services = scope.ServiceProvider;
         var roles = services.GetRequiredService<RoleManager<IdentityRole>>();
@@ -107,6 +113,16 @@ public static class Seed
             target.Heading = "Synthetic draft test content";
             content.Save(target, SaveAction.Publish, AccessLevel.NoAccess);
             CreateDraft(content, target);
+        }
+        if (Environment.GetEnvironmentVariable("CMS_UPGRADE_PHASE") == "before")
+        {
+            settings.SaveToken("upgrade-preserved-token", recheck: true, latestUI: true,
+                apiUser: "upgrade-api-user", apiKey: "upgrade-api-key",
+                urlMap: new Dictionary<string, string>
+                {
+                    ["http://localhost:5000/"] = "https://upgrade.example.invalid/",
+                    ["https://secondary.example.invalid/"] = "https://mapped.example.invalid/"
+                });
         }
         Ready = true;
     }
