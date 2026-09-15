@@ -12,13 +12,14 @@ function harness() {
     calls.push({ path, options });
     return Promise.resolve(path === 'token' ? 'synthetic-token' : { url: `http://localhost/${options?.query?.contentId}`, isDomain: false });
   } };
+  const window = { _si: commands, epi: { routes: { getActionPath: x => x.action } } };
   vm.runInNewContext(source, {
-    window: { _si: commands, epi: { routes: { getActionPath: x => x.action } } },
+    window,
     document: { querySelector: () => preview },
     define: (_, factory) => { module = factory({}, (_, body) => body, {}, {},
       { subscribe: (...args) => subscriptions.push(args) }, request, {}, (promise, fn) => Promise.resolve(promise).then(fn)); }
   });
-  return { module, commands, calls, subscriptions, setPreview: p => { preview = p; } };
+  return { module, commands, calls, subscriptions, window, setPreview: p => { preview = p; } };
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
@@ -62,4 +63,27 @@ test('highlight callback uses the current preview DOM', async () => {
   h.commands.find(c => c[0] === 'onHighlight')[1]({ selector: 'h1' });
   assert.equal(h.commands.at(-1)[0], 'applyDefaultHighlighting');
   assert.equal(h.commands.at(-1)[2].page, 'second');
+});
+
+
+test('a token response uses the overlay queue installed while the request was pending', async () => {
+  const h = harness();
+  h.module.pushSi('input', 'https://example.invalid/current');
+  const received = [];
+  h.window._si = { push: command => received.push(command) };
+  await flush();
+  assert.equal(received.length, 1);
+  assert.equal(received[0][1], 'https://example.invalid/current');
+  assert.equal(h.commands.length, 0);
+});
+
+test('queued highlight callback uses the loaded overlay handler', async () => {
+  const h = harness();
+  h.module.inherited = () => {};
+  h.module.initialize();
+  await flush();
+  const received = [];
+  h.window._si = { push: command => received.push(command) };
+  h.commands.find(command => command[0] === 'onHighlight')[1]({ selector: 'h1' });
+  assert.equal(received[0][0], 'applyDefaultHighlighting');
 });

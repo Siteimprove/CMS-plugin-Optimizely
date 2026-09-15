@@ -9,6 +9,7 @@ import zipfile
 PACKAGE = 'SiteImprove.Optimizely.Plugin'
 MODULE_FILES = {
     'module.config',
+    '1.0.5/ClientResources/Scripts/overlay-loader.js',
     '1.0.5/ClientResources/Scripts/siteimprove.js',
     '1.0.5/ClientResources/Styles/styles.css',
     '1.0.5/ClientResources/Images/icon.svg',

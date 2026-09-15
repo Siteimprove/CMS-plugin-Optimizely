@@ -65,7 +65,12 @@ test('configuration UI persists settings and prepublish status', async ({ page }
   await page.locator('#Recheck').uncheck();
   await page.locator('input[name="urlMap[0].key"]').fill('http://localhost:5000/');
   await page.locator('input[name="urlMap[0].value"]').fill('https://public-test.example.invalid/');
+  const saved = page.waitForResponse(response => response.request().method() === 'GET'
+    && new URL(response.url()).pathname.endsWith('/SiteimproveAdmin') && response.status() === 200);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await (await saved).finished();
+  await page.waitForLoadState('load');
+  await expect(page.locator('#ApiUser')).toHaveValue('stub-user');
   await page.reload();
   await expect(page.locator('#ApiUser')).toHaveValue('stub-user');
   await expect(page.locator('#ApiKey')).toHaveValue('stub-key');
