@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="packages.lock.json" Pack="false" CopyToOutputDirectory="Never" />
     <Content Remove="modules\_protected\SiteImprove.Optimizely.Plugin_files\**\*" />
   </ItemGroup>
 
