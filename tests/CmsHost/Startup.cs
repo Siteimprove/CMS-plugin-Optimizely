@@ -17,9 +17,16 @@ public class Startup
         services.AddCmsAspNetIdentity<ApplicationUser>();
         services.AddCms();
         services.Configure<DataAccessOptions>(o => { o.UpdateDatabaseSchema = true; o.CreateDatabaseSchema = true; });
-        services.AddSingleton<ExternalStub>();
-        services.AddHttpClient("Siteimprove").ConfigurePrimaryHttpMessageHandler(
-            sp => sp.GetRequiredService<ExternalStub>()).SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+        if (Environment.GetEnvironmentVariable("CMS_SITEIMPROVE_MODE") != "live")
+        {
+            services.AddSingleton<ExternalStub>();
+            services.AddHttpClient("Siteimprove").ConfigurePrimaryHttpMessageHandler(
+                sp => sp.GetRequiredService<ExternalStub>()).SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+        }
+        else
+        {
+            services.AddHttpClient("Siteimprove").ConfigurePrimaryHttpMessageHandler(() => new LiveReadOnlyHandler());
+        }
     }
 
     public void Configure(IApplicationBuilder app)
@@ -47,6 +54,9 @@ public class Startup
                 admin = resolver.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin"),
                 plugin = resolver.ResolvePath(Constants.SiteImproveModuleName, "Siteimprove")
             }).RequireAuthorization();
+            endpoints.MapGet("/test/live-target", () =>
+                Environment.GetEnvironmentVariable("CMS_SITEIMPROVE_MODE") == "live" && Seed.Ready
+                    ? Results.Ok(new { contentId = Seed.LiveContentId }) : Results.NotFound()).RequireAuthorization();
             endpoints.MapGet("/test/ready", () => Seed.Ready ? Results.Ok() : Results.StatusCode(503));
         });
     }

@@ -1,4 +1,5 @@
 """Run a disposable SQL Server and localhost CMS, retaining only sanitized evidence."""
+import argparse
 import json
 import os
 from pathlib import Path
@@ -15,6 +16,18 @@ SQL_IMAGE = 'mcr.microsoft.com/mssql/server:2022-CU22-ubuntu-22.04@sha256:db9a8f
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--live', action='store_true')
+    live = parser.parse_args().live
+    if not live and any(key.startswith('SITEIMPROVE_') and value for key, value in os.environ.items()):
+        raise SystemExit('Do not supply live configuration to the controlled-response suite.')
+    if live:
+        if os.environ.get('LIVE_TESTS_ENABLED') != 'true':
+            raise SystemExit('Live tests require LIVE_TESTS_ENABLED=true.')
+        shutil.rmtree(ROOT / 'artifacts/live', ignore_errors=True)
+        subprocess.run(['node', '--input-type=module', '-e',
+            "import { settings } from './tests/live/settings.mjs'; try { settings(process.env); } catch { process.exit(1); }"],
+            cwd=ROOT, check=True)
     if not shutil.which('docker'):
         raise SystemExit('Docker is required: use an x64 Linux host or the GitHub-hosted CMS job.')
     host = ROOT / 'artifacts/host'
@@ -25,7 +38,7 @@ def main():
     container = 'cms-sql-' + secrets.token_hex(6)
     env = dict(os.environ, ACCEPT_EULA='Y', MSSQL_PID='Developer', MSSQL_SA_PASSWORD=password,
                SQLCMDPASSWORD=password, CMS_EDITOR_PASSWORD=editor_password,
-               CMS_TEST_HOST='1', ASPNETCORE_ENVIRONMENT='Development',
+               CMS_TEST_HOST='1', CMS_SITEIMPROVE_MODE='live' if live else 'stub', ASPNETCORE_ENVIRONMENT='Development',
                Logging__LogLevel__Default='Warning', Logging__LogLevel__Microsoft='Warning')
     started = time.monotonic()
     timings = {'sqlImage': SQL_IMAGE}
@@ -51,7 +64,7 @@ def main():
                        stdout=subprocess.DEVNULL)
         port = subprocess.check_output(['docker', 'port', container, '1433/tcp'], text=True).strip().rsplit(':', 1)[1]
         env['ConnectionStrings__EPiServerDB'] = f'Server=127.0.0.1,{port};Database=CmsIntegration;User Id=sa;Password={password};Encrypt=True;TrustServerCertificate=True'
-        with raw.open('w') as log:
+        with (open(os.devnull, 'w') if live else raw.open('w')) as log:
             process = subprocess.Popen(['dotnet', 'bin/Release/net8.0/CmsHost.dll'], cwd=host, env=env,
                                        stdout=log, stderr=subprocess.STDOUT)
             deadline = time.monotonic() + 180
@@ -70,7 +83,9 @@ def main():
             timings['cmsReadySeconds'] = round(time.monotonic() - started, 2)
             timings['sqlResources'] = json.loads(subprocess.check_output(
                 ['docker', 'stats', '--no-stream', '--format', '{{json .}}', container], text=True))
-            subprocess.run(['npm', 'run', 'test:cms'], cwd=ROOT, env=env, check=True, timeout=600)
+            subprocess.run(['npm', 'run', 'test:live' if live else 'test:cms'], cwd=ROOT, env=env,
+                           check=True, timeout=600, stdout=subprocess.DEVNULL if live else None,
+                           stderr=subprocess.DEVNULL if live else None)
     finally:
         if process and process.poll() is None:
             process.terminate()
@@ -83,8 +98,11 @@ def main():
             text = raw.read_text(errors='replace').replace(password, '[redacted]').replace(editor_password, '[redacted]')
             (evidence / 'host.log').write_text(text)
             raw.unlink()
-        result = subprocess.run(['docker', 'logs', container], capture_output=True, text=True)
-        (evidence / 'sql.log').write_text((result.stdout + result.stderr).replace(password, '[redacted]'))
+        if not live:
+            result = subprocess.run(['docker', 'logs', container], capture_output=True, text=True)
+            (evidence / 'sql.log').write_text((result.stdout + result.stderr).replace(password, '[redacted]'))
+        else:
+            shutil.rmtree(ROOT / 'artifacts/live-private', ignore_errors=True)
         subprocess.run(['docker', 'rm', '-f', '-v', container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         timings['childPeakRssNativeUnits'] = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
         timings['childPeakRssUnits'] = 'KiB on Linux; bytes on macOS (all child processes)'

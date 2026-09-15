@@ -14,6 +14,7 @@ namespace CmsHost;
 public static class Seed
 {
     public static volatile bool Ready;
+    public static int LiveContentId;
 
     public static async Task RunAsync(IServiceProvider provider)
     {
@@ -38,7 +39,8 @@ public static class Seed
         }
         var settings = services.GetRequiredService<ISettingsRepository>();
         // Seed a synthetic token before any client-resource discovery can request an external token.
-        settings.SaveToken("localhost-stub-token", recheck: false, latestUI: true);
+        var live = Environment.GetEnvironmentVariable("CMS_SITEIMPROVE_MODE") == "live";
+        if (!live) settings.SaveToken("localhost-stub-token", recheck: false, latestUI: true);
         var content = services.GetRequiredService<IContentRepository>();
         var languages = services.GetRequiredService<ILanguageBranchRepository>();
         if (languages.Load(CultureInfo.GetCultureInfo("en")) is not { Enabled: true })
@@ -71,6 +73,27 @@ public static class Seed
                 SiteUrl = new Uri("http://localhost:5000/"),
                 Hosts = new List<HostDefinition> { new() { Name = "localhost:5000", Language = CultureInfo.GetCultureInfo("en"), Type = HostDefinitionType.Primary } }
             });
+        if (live)
+        {
+            var crawled = new Uri(Environment.GetEnvironmentVariable("SITEIMPROVE_CRAWLED_URL")!);
+            var target = start;
+            var index = 0;
+            foreach (var segment in crawled.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var child = content.GetDefault<StandardPage>(target.ContentLink, CultureInfo.GetCultureInfo("en"));
+                child.Name = "Live test page " + ++index;
+                child.URLSegment = segment;
+                child.Heading = "Synthetic live test content";
+                content.Save(child, SaveAction.Publish, AccessLevel.NoAccess);
+                target = child;
+            }
+            LiveContentId = target.ContentLink.ID;
+            // Rechecks stay disabled: this smoke test only reads existing reports.
+            settings.SaveToken(null, recheck: false, latestUI: true,
+                apiUser: Environment.GetEnvironmentVariable("SITEIMPROVE_API_USERNAME"),
+                apiKey: Environment.GetEnvironmentVariable("SITEIMPROVE_API_KEY"),
+                urlMap: new Dictionary<string, string> { ["http://localhost:5000/"] = crawled.GetLeftPart(UriPartial.Authority) + "/" });
+        }
         Ready = true;
     }
 

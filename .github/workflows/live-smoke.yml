@@ -1,0 +1,63 @@
+name: Live Siteimprove smoke test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: live-siteimprove
+  cancel-in-progress: false
+jobs:
+  trusted-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require main
+        env:
+          SOURCE_REF: ${{ github.ref }}
+        run: test "$SOURCE_REF" = refs/heads/main
+  functional:
+    needs: trusted-source
+    uses: ./.github/workflows/functional-tests.yml
+  candidate:
+    needs: [trusted-source, functional]
+    uses: ./.github/workflows/ci.yml
+  live:
+    needs: candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: siteimprove-test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.23.2'
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: candidate
+          path: artifacts/candidate
+      - run: python3 scripts/host.py
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Read an existing report through the real overlay
+        env:
+          LIVE_TESTS_ENABLED: ${{ vars.LIVE_TESTS_ENABLED }}
+          SITEIMPROVE_USERNAME: ${{ secrets.SITEIMPROVE_USERNAME }}
+          SITEIMPROVE_PASSWORD: ${{ secrets.SITEIMPROVE_PASSWORD }}
+          SITEIMPROVE_API_USERNAME: ${{ secrets.SITEIMPROVE_API_USERNAME }}
+          SITEIMPROVE_API_KEY: ${{ secrets.SITEIMPROVE_API_KEY }}
+          SITEIMPROVE_PUBLIC_URL: ${{ secrets.SITEIMPROVE_PUBLIC_URL }}
+          SITEIMPROVE_CRAWLED_URL: ${{ secrets.SITEIMPROVE_CRAWLED_URL }}
+        run: python3 scripts/cms_smoke.py --live
+      - name: Retain outcome only
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: live-smoke-outcome
+          path: artifacts/live/result.json
+          if-no-files-found: ignore
+          retention-days: 7

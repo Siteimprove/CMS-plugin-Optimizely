@@ -6,7 +6,8 @@
     "test:observations": "playwright test --grep @observation",
     "test:report": "playwright show-report",
     "test:unit": "node --test tests/unit/*.test.cjs",
-    "test:cms": "playwright test --config playwright.cms.config.ts"
+    "test:cms": "playwright test --config playwright.cms.config.ts",
+    "test:live": "playwright test --config tests/live/playwright.config.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0"
