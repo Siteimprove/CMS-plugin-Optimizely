@@ -106,3 +106,17 @@ test('live diagnostics accept only known booleans and HTTP status codes', async 
     { pollAuthenticated: true, pollStatus: 200 });
   assert.deepEqual(safeDiagnostics({ pollStatus: 123456, entitlementStatus: 0, pollAuthenticated: 'private-value' }), {});
 });
+
+test('SDK asset diagnostics exclude account routes, origins, credentials and query strings', async () => {
+  const { publicSdkAsset, safeDiagnostics } = await import('../live/diagnostics.mjs');
+  const asset = 'https://contentassistant.eu.siteimprove.com/assets/index-abcd1234.js';
+  assert.equal(publicSdkAsset(asset + '?token=private-value'), asset);
+  for (const value of ['https://attacker.example/assets/index.js',
+    'https://user:private-value@contentassistant.eu.siteimprove.com/assets/index.js',
+    'https://contentassistant.eu.siteimprove.com/cms/private-value.js',
+    'https://contentassistant.eu.siteimprove.com/assets/private-value.js',
+    asset + '#private-value', 'not-a-url']) assert.equal(publicSdkAsset(value), null);
+  const result = safeDiagnostics({ sdkAssets: [asset, asset + '?token=private-value', 'private-value'], url: 'private-value' });
+  assert.deepEqual(result, { sdkAssets: [asset] });
+  assert.equal(JSON.stringify(result).includes('private-value'), false);
+});
