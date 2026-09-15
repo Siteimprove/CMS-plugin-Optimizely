@@ -76,15 +76,35 @@ Artifacts retain the package, checksum, source/dependency manifest, resolved hos
 
 The release-candidate workflow accepts `vMAJOR.MINOR.PATCH` tags or equivalent manual version input and checks it against the project version. It runs the functional suite and the same package/CMS pipeline. Only after all required jobs succeed does a separate job create an unpublished GitHub Release for `vMAJOR.MINOR.PATCH`. That job alone has `contents: write`; ordinary PR builds keep read-only permissions.
 
-The draft attaches the tested `.nupkg`, `SHA256SUMS`, `manifest.json` and plugin dependency lockfile. The package is downloaded from the same run and verified again against the expected version, source commit and checksum; it is never rebuilt for upload. Notes identify the source, checksum, validation run and outstanding upgrade/live checks. These release assets remain available beyond the seven-day Actions artifact window until the draft or assets are deleted.
+The draft attaches the tested `.nupkg`, `SHA256SUMS`, `manifest.json` and plugin dependency lockfile. The package is downloaded from the same run and verified again against the expected version, source commit and checksum; it is never rebuilt for upload. Notes identify the source, checksum, validation run, automated upgrade coverage and outstanding live checks. These release assets remain available beyond the seven-day Actions artifact window until the draft or assets are deleted.
 
 To create one after this workflow is on main:
 
 1. Update the project's version and commit it.
 2. Open **Actions → Release candidate → Run workflow**, select that source ref and enter the matching version.
 3. After a successful run, open **Releases** to review the draft and download its attachments. Drafts are visible to repository collaborators with the appropriate access; they are not published release pages.
-4. Review the notes, complete upgrade and live Siteimprove acceptance, then separately approve feed publication and publication of the GitHub Release. Promote the attached package bytes; a rebuild needs fresh validation.
+4. Review the notes and upgrade evidence, complete live Siteimprove acceptance, then separately approve feed publication and publication of the GitHub Release. Promote the attached package bytes; a rebuild needs fresh validation.
 
 Reruns never replace an existing draft or published release for the same version. They stop for review instead. An existing tag must resolve to the tested commit. If an upload fails, the release remains a draft and the job fails; review the partial draft before retrying, rather than replacing assets blindly. Draft creation does not upload anything to NuGet/Optimizely or publish a GitHub Release. The draft job uses the built-in GitHub token and needs no additional secret.
 
-A later live workflow should be manual, restricted to trusted source and a protected environment, with a dedicated test account and separately approved secrets for overlay authentication/API access. Supply a genuinely crawled public test URL. Use the plugin's persisted Site URL/External URL mapping, then verify the URL delivered to the real overlay; do not assume a crawler can reach runner localhost. Keep real report polling and availability failures separate from CMS/stub results. The `.invalid` mapping in ordinary tests intentionally cannot supply a live report.
+The separate manual live workflow is documented in [live testing](live-testing.md), with required environment protections, account setup and URL constraints. It remains unvalidated against a live account. The [coverage plan](test-coverage-plan.md) tracks the remaining regression and release-acceptance work. The `.invalid` mapping in ordinary tests intentionally cannot supply a live report.
+
+
+## Small CMS 12 compatibility matrix
+
+Each package is installed unchanged into two .NET 8 CMS hosts. Both run all six controlled-response CMS scenarios, including draft persistence and separation from published content.
+
+| Profile | CMS UI/metapackage | CMS Core/hosting | Purpose |
+| --- | --- | --- | --- |
+| `cms12-current` | 12.34.6 | 12.24.0 | Existing baseline; also used for protected live scans |
+| `cms12-2025` | 12.32.5 | 12.22.6 | Older CMS 12 line from the [April 2025 release](https://support.optimizely.com/hc/en-us/articles/42412167768333-2025-Optimizely-CMS-12-release-notes) |
+
+Use `python3 scripts/host.py --profile cms12-2025` to select the older host locally. Each profile has a committed dependency lock. CMS Core helper packages are pinned together to avoid conflicting exact routing dependencies. CI retains separate evidence artifacts per profile and requires both to pass.
+
+This is a compatibility sample, not a claim to cover every version in the package's supported range. It adds one CMS job, not a cross-product of browsers, runtimes and live services. CMS 13 remains outside this release's dependency range. Live scans run on the newer profile only.
+
+### Package upgrade
+
+A separate required job runs the published 4.3.3 package and then the candidate on `cms12-current`, keeping the same SQL database and application data. The baseline comes from the official Optimizely feed and is verified against a pinned SHA-256 before installation. Both installed DLLs and module ZIPs must match their respective packages.
+
+The baseline saves synthetic configuration through its own settings repository and creates published content plus an unpublished draft. After replacement, seeding is disabled. Playwright checks the original settings record, token, API fields, flags, URL mappings, editor login and draft reference/content, then checks the candidate settings UI and preview callback. Published content must remain unchanged. Siteimprove responses remain controlled. This covers one plugin upgrade path, not a CMS upgrade or every historical plugin version.

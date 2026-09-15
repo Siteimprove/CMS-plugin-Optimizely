@@ -17,9 +17,16 @@ public class Startup
         services.AddCmsAspNetIdentity<ApplicationUser>();
         services.AddCms();
         services.Configure<DataAccessOptions>(o => { o.UpdateDatabaseSchema = true; o.CreateDatabaseSchema = true; });
-        services.AddSingleton<ExternalStub>();
-        services.AddHttpClient("Siteimprove").ConfigurePrimaryHttpMessageHandler(
-            sp => sp.GetRequiredService<ExternalStub>()).SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+        if (Environment.GetEnvironmentVariable("CMS_SITEIMPROVE_MODE") != "live")
+        {
+            services.AddSingleton<ExternalStub>();
+            services.AddHttpClient("Siteimprove").ConfigurePrimaryHttpMessageHandler(
+                sp => sp.GetRequiredService<ExternalStub>()).SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+        }
+        else
+        {
+            services.AddHttpClient("Siteimprove").ConfigurePrimaryHttpMessageHandler(() => new LiveReadOnlyHandler());
+        }
     }
 
     public void Configure(IApplicationBuilder app)
@@ -47,6 +54,26 @@ public class Startup
                 admin = resolver.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin"),
                 plugin = resolver.ResolvePath(Constants.SiteImproveModuleName, "Siteimprove")
             }).RequireAuthorization();
+            endpoints.MapGet("/test/live-target", () =>
+                Seed.Ready ? Results.Ok(new { contentId = Seed.LiveContentId }) : Results.NotFound())
+                .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
+            endpoints.MapPost("/test/live-draft/fix", (HttpContext context, EPiServer.IContentRepository content) =>
+                Seed.Ready && context.Request.Headers["X-Cms-Test"] == "prepublish"
+                    ? Results.Ok(new { contentId = Seed.FixLiveDraft(content) }) : Results.NotFound())
+                .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
+            endpoints.MapGet("/test/upgrade-settings", (SiteImprove.Optimizely.Plugin.Repositories.ISettingsRepository repository) =>
+            {
+                if (Environment.GetEnvironmentVariable("CMS_UPGRADE_PHASE") is not ("before" or "after"))
+                    return Results.NotFound();
+                var settings = repository.GetSetting();
+                var assembly = typeof(SiteImprove.Optimizely.Plugin.Helper.SiteimproveHelper).Assembly;
+                return Results.Ok(new
+                {
+                    version = assembly.GetName().Version?.ToString(3),
+                    settings = new { recordId = settings.Id.ToString(), settings.Token, settings.Recheck,
+                        settings.LatestUI, settings.ApiUser, settings.ApiKey, settings.UrlMap }
+                });
+            }).RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
             endpoints.MapGet("/test/ready", () => Seed.Ready ? Results.Ok() : Results.StatusCode(503));
         });
     }

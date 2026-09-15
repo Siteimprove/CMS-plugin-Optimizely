@@ -144,3 +144,25 @@ test('authenticated editor without an allowed plugin role is denied', async ({ p
   await expect(page.locator('#ApiKey')).toHaveCount(0);
   expect(await page.evaluate(() => (window as any).__overlayEvidence?.commands.filter((x: string) => x === 'registerPrepublishCallback').length ?? 0)).toBe(0);
 });
+
+
+test('prepublish fixture preserves published content while draft edits persist', async ({ page }) => {
+  await login(page);
+  const target = await page.request.get('/test/live-target');
+  expect(target.ok()).toBe(true);
+  const { contentId } = await target.json();
+  await page.goto(`/episerver/cms/#context=epi.cms.contentdata:///${contentId}`);
+  const preview = page.frameLocator('iframe[name="sitePreview"]');
+  await expect(preview.locator('#live-test-marker')).toHaveText(process.env.CMS_DRAFT_MARKER!);
+  expect(await preview.locator('#live-test-image').getAttribute('alt')).toBeNull();
+  const published = await page.request.get('/draft-test-page/');
+  expect(published.ok()).toBe(true);
+  expect(await published.text()).not.toContain(process.env.CMS_DRAFT_MARKER!);
+  const fixed = await page.request.post('/test/live-draft/fix', { headers: { 'X-Cms-Test': 'prepublish' } });
+  expect(fixed.ok()).toBe(true);
+  const updated = await fixed.json();
+  await page.goto(`/episerver/cms/#context=epi.cms.contentdata:///${updated.contentId}`);
+  await expect(preview.locator('#live-test-marker')).toHaveText(process.env.CMS_DRAFT_FIXED_MARKER!);
+  await expect(preview.locator('#live-test-image')).toHaveAttribute('alt', 'Blue square for the prepublish test');
+  expect(await (await page.request.get('/draft-test-page/')).text()).not.toContain(process.env.CMS_DRAFT_FIXED_MARKER!);
+});

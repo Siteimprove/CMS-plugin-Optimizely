@@ -39,9 +39,9 @@ Source commit: `{commit}`
 Validation: {run_url}
 Package SHA-256: `{digest}`
 
-The attached package passed functional tests, package-content checks and the real-CMS browser suite with controlled Siteimprove responses. These are the tested package bytes; no rebuild was performed for this draft.
+The attached package passed functional tests, package-content checks, the two-profile CMS browser suite, and the 4.3.3-to-candidate package upgrade test with controlled Siteimprove responses. These are the tested package bytes; no rebuild was performed for this draft.
 
-Before publishing, review release notes and complete the upgrade and live Siteimprove checks. Live reports are not covered by the controlled-response suite. Publish the attached package to the package feed only after approval.
+Before publishing, review release notes and upgrade evidence, then complete live Siteimprove acceptance. Live reports are not covered by the controlled-response suite. Publish the attached package to the package feed only after approval.
 '''
     return assets, notes
 

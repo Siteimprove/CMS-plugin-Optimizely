@@ -1,4 +1,5 @@
 """Run a disposable SQL Server and localhost CMS, retaining only sanitized evidence."""
+import argparse
 import json
 import os
 from pathlib import Path
@@ -15,6 +16,19 @@ SQL_IMAGE = 'mcr.microsoft.com/mssql/server:2022-CU22-ubuntu-22.04@sha256:db9a8f
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--live', action='store_true')
+    mode.add_argument('--upgrade', action='store_true')
+    args = parser.parse_args()
+    live, upgrade = args.live, args.upgrade
+    if not live and any(key.startswith('SITEIMPROVE_') and value for key, value in os.environ.items()):
+        raise SystemExit('Do not supply live configuration to the controlled-response suite.')
+    if live:
+        shutil.rmtree(ROOT / 'artifacts/live', ignore_errors=True)
+        subprocess.run(['node', '--input-type=module', '-e',
+            "import { settings } from './tests/live/settings.mjs'; try { settings(process.env); } catch { process.exit(1); }"],
+            cwd=ROOT, check=True)
     if not shutil.which('docker'):
         raise SystemExit('Docker is required: use an x64 Linux host or the GitHub-hosted CMS job.')
     host = ROOT / 'artifacts/host'
@@ -25,7 +39,9 @@ def main():
     container = 'cms-sql-' + secrets.token_hex(6)
     env = dict(os.environ, ACCEPT_EULA='Y', MSSQL_PID='Developer', MSSQL_SA_PASSWORD=password,
                SQLCMDPASSWORD=password, CMS_EDITOR_PASSWORD=editor_password,
-               CMS_TEST_HOST='1', ASPNETCORE_ENVIRONMENT='Development',
+               CMS_DRAFT_MARKER='CMS-DRAFT-' + secrets.token_hex(12),
+               CMS_DRAFT_FIXED_MARKER='CMS-FIXED-' + secrets.token_hex(12),
+               CMS_TEST_HOST='1', CMS_SITEIMPROVE_MODE='live' if live else 'stub', ASPNETCORE_ENVIRONMENT='Development',
                Logging__LogLevel__Default='Warning', Logging__LogLevel__Microsoft='Warning')
     started = time.monotonic()
     timings = {'sqlImage': SQL_IMAGE}
@@ -51,26 +67,43 @@ def main():
                        stdout=subprocess.DEVNULL)
         port = subprocess.check_output(['docker', 'port', container, '1433/tcp'], text=True).strip().rsplit(':', 1)[1]
         env['ConnectionStrings__EPiServerDB'] = f'Server=127.0.0.1,{port};Database=CmsIntegration;User Id=sa;Password={password};Encrypt=True;TrustServerCertificate=True'
-        with raw.open('w') as log:
-            process = subprocess.Popen(['dotnet', 'bin/Release/net8.0/CmsHost.dll'], cwd=host, env=env,
-                                       stdout=log, stderr=subprocess.STDOUT)
-            deadline = time.monotonic() + 180
-            while True:
-                if process.poll() is not None:
-                    raise RuntimeError('CMS exited before readiness; see sanitized host.log')
+        with (open(os.devnull, 'w') if live else raw.open('w')) as log:
+            for phase in (['before', 'after'] if upgrade else ['single']):
+                active_host = ROOT / 'artifacts/host-baseline' if phase == 'before' else host
+                if upgrade:
+                    env['CMS_UPGRADE_PHASE'] = phase
+                    env['CMS_EXPECTED_VERSION'] = '4.3.3' if phase == 'before' else json.loads(
+                        (ROOT / 'artifacts/candidate/manifest.json').read_text())['packageVersion']
+                    if phase == 'after':
+                        shutil.copytree(ROOT / 'artifacts/host-baseline/App_Data', host / 'App_Data', dirs_exist_ok=True)
+                process = subprocess.Popen(['dotnet', 'bin/Release/net8.0/CmsHost.dll'], cwd=active_host, env=env,
+                                           stdout=log, stderr=subprocess.STDOUT)
+                deadline = time.monotonic() + 180
+                while True:
+                    if process.poll() is not None:
+                        raise RuntimeError('CMS exited before readiness; see sanitized host.log')
+                    try:
+                        with urllib.request.urlopen('http://localhost:5000/test/ready', timeout=2) as response:
+                            if response.status == 200:
+                                break
+                    except OSError:
+                        pass
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError('CMS did not become ready within 180 seconds')
+                    time.sleep(1)
+                timings['cmsReadySeconds'] = round(time.monotonic() - started, 2)
+                timings['sqlResources'] = json.loads(subprocess.check_output(
+                    ['docker', 'stats', '--no-stream', '--format', '{{json .}}', container], text=True))
+                subprocess.run(['npm', 'run', 'test:upgrade' if upgrade else ('test:live' if live else 'test:cms')], cwd=ROOT, env=env,
+                               check=True, timeout=900, stdout=subprocess.DEVNULL if live else None,
+                               stderr=subprocess.DEVNULL if live else None)
+                process.terminate()
                 try:
-                    with urllib.request.urlopen('http://localhost:5000/test/ready', timeout=2) as response:
-                        if response.status == 200:
-                            break
-                except OSError:
-                    pass
-                if time.monotonic() >= deadline:
-                    raise RuntimeError('CMS did not become ready within 180 seconds')
-                time.sleep(1)
-            timings['cmsReadySeconds'] = round(time.monotonic() - started, 2)
-            timings['sqlResources'] = json.loads(subprocess.check_output(
-                ['docker', 'stats', '--no-stream', '--format', '{{json .}}', container], text=True))
-            subprocess.run(['npm', 'run', 'test:cms'], cwd=ROOT, env=env, check=True, timeout=600)
+                    process.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+
     finally:
         if process and process.poll() is None:
             process.terminate()
@@ -83,8 +116,11 @@ def main():
             text = raw.read_text(errors='replace').replace(password, '[redacted]').replace(editor_password, '[redacted]')
             (evidence / 'host.log').write_text(text)
             raw.unlink()
-        result = subprocess.run(['docker', 'logs', container], capture_output=True, text=True)
-        (evidence / 'sql.log').write_text((result.stdout + result.stderr).replace(password, '[redacted]'))
+        if not live:
+            result = subprocess.run(['docker', 'logs', container], capture_output=True, text=True)
+            (evidence / 'sql.log').write_text((result.stdout + result.stderr).replace(password, '[redacted]'))
+        else:
+            shutil.rmtree(ROOT / 'artifacts/live-private', ignore_errors=True)
         subprocess.run(['docker', 'rm', '-f', '-v', container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         timings['childPeakRssNativeUnits'] = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
         timings['childPeakRssUnits'] = 'KiB on Linux; bytes on macOS (all child processes)'
@@ -92,6 +128,8 @@ def main():
         (evidence / 'timings.json').write_text(json.dumps(timings, indent=2) + '\n')
         # Identity cookies, keys, database credentials and mutable CMS state are disposable.
         shutil.rmtree(host / 'App_Data', ignore_errors=True)
+        if upgrade:
+            shutil.rmtree(ROOT / 'artifacts/host-baseline/App_Data', ignore_errors=True)
 
 
 if __name__ == '__main__':
