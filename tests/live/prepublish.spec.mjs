@@ -5,16 +5,22 @@ import { observeDraft } from './prepublish.mjs';
 
 async function scan(page, evidence, marker) {
   const overlay = page.frameLocator('iframe.si-iframe-element');
-  await overlay.getByRole('tab', { name: /Prepublish/i })
-    .or(overlay.getByText('Prepublish view', { exact: true })).first().click();
   const before = evidence[marker];
-  await overlay.getByRole('button', { name: /^(Run content check|Recheck draft)$/i }).click();
-  await expect(overlay.getByRole('button', { name: /Cancel content check/i })).toBeVisible();
-  await expect.poll(() => evidence[marker], { timeout: 60_000 }).toBeGreaterThan(before);
-  const deadline = Date.now() + 300_000;
-  await expect(overlay.getByRole('button', { name: /^Recheck draft$/i })).toBeVisible({ timeout: 300_000 });
-  await expect(overlay.getByRole('button', { name: /Cancel content check/i }))
-    .toBeHidden({ timeout: Math.max(1, deadline - Date.now()) });
+  await test.step('live: start prepublish', async () => {
+    await overlay.getByRole('tab', { name: /Prepublish/i })
+      .or(overlay.getByText('Prepublish view', { exact: true })).first().click();
+    await overlay.getByRole('button', { name: /^(Run content check|Recheck draft)$/i }).click();
+    await expect(overlay.getByRole('button', { name: /Cancel content check/i })).toBeVisible();
+  });
+  await test.step('live: draft handoff', async () => {
+    await expect.poll(() => evidence[marker], { timeout: 60_000 }).toBeGreaterThan(before);
+  });
+  await test.step('live: loading-state exit', async () => {
+    const deadline = Date.now() + 300_000;
+    await expect(overlay.getByRole('button', { name: /^Recheck draft$/i })).toBeVisible({ timeout: 300_000 });
+    await expect(overlay.getByRole('button', { name: /Cancel content check/i }))
+      .toBeHidden({ timeout: Math.max(1, deadline - Date.now()) });
+  });
 }
 
 test('prepublish hands off both saved draft revisions and exits the loading state', async ({ page, context }) => {
