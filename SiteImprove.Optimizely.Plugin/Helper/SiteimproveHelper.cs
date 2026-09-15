@@ -17,13 +17,21 @@ namespace SiteImprove.Optimizely.Plugin.Helper
     [ServiceConfiguration(typeof(ISiteimproveHelper))]
     public class SiteimproveHelper : ISiteimproveHelper
     {
-        private static readonly ILogger _log = LogManager.GetLogger(typeof(SiteimproveHelper));
+        private readonly ILogger _log;
+        private readonly Func<HttpClient> _createHttpClient;
 
         private readonly ISettingsRepository _settingsRepo;
 
         public SiteimproveHelper(ISettingsRepository settingsRepository)
+            : this(settingsRepository, () => new HttpClient(), LogManager.GetLogger(typeof(SiteimproveHelper)))
+        {
+        }
+
+        internal SiteimproveHelper(ISettingsRepository settingsRepository, Func<HttpClient> createHttpClient, ILogger log)
         {
             _settingsRepo = settingsRepository;
+            _createHttpClient = createHttpClient;
+            _log = log;
         }
 
         public string GetOptimizelyVersion()
@@ -98,7 +106,7 @@ namespace SiteImprove.Optimizely.Plugin.Helper
 
         public bool GetPrepublishCheckEnabled(string apiUser, string apiKey)
         {
-            using (var client = new HttpClient())
+            using (var client = _createHttpClient())
             {
                 bool enabled = false;
 
@@ -130,7 +138,7 @@ namespace SiteImprove.Optimizely.Plugin.Helper
 
         public bool EnablePrepublishCheck(string apiUser, string apiKey)
         {
-            using (var client = new HttpClient())
+            using (var client = _createHttpClient())
             {
                 var byteArray = Encoding.ASCII.GetBytes($"{apiUser}:{apiKey}");
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
@@ -161,7 +169,7 @@ namespace SiteImprove.Optimizely.Plugin.Helper
             var response = string.Empty;
             try
             {
-                using (var client = new HttpClient())
+                using (var client = _createHttpClient())
                 {
                     // Request a token from Siteimprove
                     var version = GetOptimizelyVersion();
@@ -181,10 +189,11 @@ namespace SiteImprove.Optimizely.Plugin.Helper
             var data = new { url, type, token };
             try
             {
-                using (var client = new HttpClient())
+                using (var client = _createHttpClient())
                 {
                     var content = new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json");
-                    var response = client.PostAsync(Constants.SiteImproveRecheckUrl, content).Result;
+                    using var response = client.PostAsync(Constants.SiteImproveRecheckUrl, content).Result;
+                    response.EnsureSuccessStatusCode();
                 }
                 _log.Information($"Siteimprove recheck called with type {type} for url {url}");
             }

@@ -52,6 +52,29 @@ public class ControllerTests : ServiceFixture
 
     private SiteimproveAdminController Admin() => new(settings.Object, helper.Object, Mock.Of<IModuleResourceResolver>());
 
+    [Fact]
+    public void Saving_settings_preserves_token_and_filters_invalid_and_duplicate_mappings()
+    {
+        settings.Setup(x => x.GetSetting()).Returns(new Settings { Token = "existing-token" });
+        var map = new[] {
+            new KeyValuePair<string, string>("https://cms.example", "https://public.example"),
+            new KeyValuePair<string, string>("https://cms.example", "https://duplicate.example"),
+            new KeyValuePair<string, string>("/relative", "https://public.example"),
+            new KeyValuePair<string, string>("https://other.example", "/relative")
+        };
+        Assert.IsType<RedirectToActionResult>(Admin().Save(true, false, "fixture-user", "fixture-key", map));
+        settings.Verify(x => x.SaveToken("existing-token", true, false, "fixture-user", "fixture-key",
+            It.Is<Dictionary<string, string>>(m => m.Count == 1 && m["https://cms.example"] == "https://public.example")), Times.Once);
+    }
+
+    [Fact]
+    public void Saving_with_no_mapping_rows_clears_mappings_without_throwing()
+    {
+        settings.Setup(x => x.GetSetting()).Returns(new Settings { Token = "existing-token" });
+        Admin().Save(false, true, "fixture-user", "fixture-key", null);
+        settings.Verify(x => x.SaveToken("existing-token", false, true, "fixture-user", "fixture-key", It.Is<Dictionary<string, string>>(m => m.Count == 0)), Times.Once);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

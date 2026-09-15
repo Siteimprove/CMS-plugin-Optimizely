@@ -64,6 +64,22 @@ public class PublishEventTests : ServiceFixture
     }
 
     [Fact]
+    public void Module_shutdown_removes_its_publish_subscription()
+    {
+        module.Uninitialize(null);
+        events.Raise(x => x.PublishedContent += null, new ContentEventArgs(Page()));
+        helper.Verify(x => x.PassEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Reinitializing_the_same_module_does_not_duplicate_rechecks()
+    {
+        module.Initialize(null);
+        events.Raise(x => x.PublishedContent += null, new ContentEventArgs(Page()));
+        helper.Verify(x => x.PassEvent("recheck", "https://public.example/da/news", "fixture-token"), Times.Once);
+    }
+
+    [Fact]
     public void Republished_start_page_requests_a_recrawl_after_an_expired_publish_event()
     {
         settings.Setup(x => x.GetSetting()).Returns(new Settings { Recheck = false });

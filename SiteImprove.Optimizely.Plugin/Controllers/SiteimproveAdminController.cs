@@ -32,8 +32,12 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
             var settings = _settingsRepo.GetSetting();
             if (newToken)
             {
-                settings.Token = _siteimproveHelper.RequestToken();
-                _settingsRepo.SaveToken(settings.Token, settings.Recheck, settings.LatestUI, settings.ApiUser, settings.ApiKey);
+                var token = _siteimproveHelper.RequestToken();
+                if (!string.IsNullOrWhiteSpace(token))
+                {
+                    settings.Token = token;
+                    _settingsRepo.SaveToken(settings.Token, settings.Recheck, settings.LatestUI, settings.ApiUser, settings.ApiKey, settings.UrlMap);
+                }
             }
 
             var vm = new SettingsViewModel()
@@ -63,10 +67,9 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
             settings.ApiKey = apiKey;
 
             settings.UrlMap = new Dictionary<string, string>();
-            foreach (var pair in urlMap)
+            foreach (var pair in urlMap ?? Array.Empty<KeyValuePair<string, string>>())
             {
-                if (Uri.TryCreate(pair.Key, UriKind.Absolute, out Uri _) &&
-                    Uri.TryCreate(pair.Value, UriKind.Absolute, out Uri _))
+                if (IsWebUrl(pair.Key) && IsWebUrl(pair.Value))
                 {
                     settings.UrlMap.TryAdd(pair.Key, pair.Value);
                 }
@@ -75,6 +78,12 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
             _settingsRepo.SaveToken(settings.Token, settings.Recheck, settings.LatestUI, settings.ApiUser, settings.ApiKey, settings.UrlMap);
 
             return RedirectToAction("Index");
+        }
+
+        private static bool IsWebUrl(string value)
+        {
+            return Uri.TryCreate(value, UriKind.Absolute, out Uri uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
         }
 
         [HttpPost]
