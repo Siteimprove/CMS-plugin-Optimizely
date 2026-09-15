@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Copyright>Copyright © SiteImprove 2024</Copyright>
@@ -31,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="packages.lock.json" Pack="false" CopyToOutputDirectory="Never" />
     <Content Remove="modules\_protected\SiteImprove.Optimizely.Plugin_files\**\*" />
   </ItemGroup>
 

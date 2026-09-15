@@ -1,5 +1,7 @@
 # CMS-plugin-Optimizely
 
+See [TESTING.md](TESTING.md) for functional tests and GitHub Actions checks.
+
 The Siteimprove CMS Add-On bridges the gap between the Optimizely content management system (CMS) and the Siteimprove Intelligence Platform. With this seamless integration, your team can fix errors and optimize content directly within the Optimizely editing environment. Once the detected issues have been assessed, you can re-check the relevant page in real-time and assess if further actions are needed.
 
 The Siteimprove CMS Add-On provides insights into*:

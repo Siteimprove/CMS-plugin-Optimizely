@@ -1,0 +1,73 @@
+name: Plugin functional tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: functional-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend functionality
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: |
+            6.0.x
+            8.0.x
+      - name: Restore locked dependencies
+        run: dotnet restore tests/Plugin.Tests/Plugin.Tests.csproj --locked-mode
+      - name: Test backend on .NET 6 and .NET 8
+        run: dotnet test tests/Plugin.Tests/Plugin.Tests.csproj --configuration Release --no-restore -p:GeneratePackageOnBuild=false --logger 'trx;LogFilePrefix=backend' --results-directory test-results/backend
+      - name: Upload backend results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-results
+          path: test-results/backend/
+          retention-days: 14
+
+  browser:
+    name: Browser functionality
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox
+      - name: Test browser functionality
+        run: npm test -- --output=test-results/functional
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/functional
+      - name: Record missing and blocked preview behavior
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: npm run test:observations -- --output=test-results/observations
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/observations
+      - name: Upload browser reports and failure screenshots/traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: browser-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
