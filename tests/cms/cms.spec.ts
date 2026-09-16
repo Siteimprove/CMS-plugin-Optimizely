@@ -166,3 +166,36 @@ test('prepublish fixture preserves published content while draft edits persist',
   await expect(preview.locator('#live-test-image')).toHaveAttribute('alt', 'Blue square for the prepublish test');
   expect(await (await page.request.get('/draft-test-page/')).text()).not.toContain(process.env.CMS_DRAFT_FIXED_MARKER!);
 });
+
+
+test('shared blocks are rejected without browser or server errors and page editing recovers', async ({ page, evidence }) => {
+  await login(page);
+  await selectPage(page, 'First page');
+  const snapshot = async () => {
+    const response = await page.request.get('/test/block-errors');
+    expect(response.ok()).toBe(true);
+    return response.json();
+  };
+  const before = await snapshot();
+  evidence.length = 0;
+  const created = await page.request.post('/test/block', { headers: { 'X-Cms-Test': 'block-regression' } });
+  expect(created.ok()).toBe(true);
+  const { contentId } = await created.json();
+  const { plugin } = await (await page.request.get('/test/routes')).json();
+  // A direct unsupported request is a controlled 400, never a type-mismatch exception.
+  const direct = await page.request.get(`${plugin}/PageUrl?contentId=${encodeURIComponent(contentId)}&locale=en`);
+  expect(direct.status()).toBe(400);
+  const blockUrlRequests: string[] = [];
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if (/\/PageUrl$/i.test(url.pathname) && url.searchParams.get('contentId')?.split('_')[0] === contentId.split('_')[0])
+      blockUrlRequests.push('block page URL request');
+  });
+  await page.goto(`/episerver/cms/#context=epi.cms.contentdata:///${contentId}`);
+  await expect(page.getByText('Regression block', { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  await selectPage(page, 'Second page');
+  await expect(page.locator('#overlay-context')).toContainText('/second-page');
+  expect(blockUrlRequests).toEqual([]);
+  expect(evidence).toEqual([]);
+  expect(await snapshot()).toEqual(before);
+});

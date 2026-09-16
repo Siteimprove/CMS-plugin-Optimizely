@@ -16,6 +16,11 @@ public class Startup
         services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo("App_Data/keys"));
         services.AddCmsAspNetIdentity<ApplicationUser>();
         services.AddCms();
+        if (Environment.GetEnvironmentVariable("CMS_SITEIMPROVE_MODE") != "live")
+        {
+            services.AddSingleton<BlockErrorLog>();
+            services.AddSingleton<Microsoft.Extensions.Logging.ILoggerProvider>(sp => sp.GetRequiredService<BlockErrorLog>());
+        }
         services.Configure<DataAccessOptions>(o => { o.UpdateDatabaseSchema = true; o.CreateDatabaseSchema = true; });
         if (Environment.GetEnvironmentVariable("CMS_SITEIMPROVE_MODE") != "live")
         {
@@ -74,6 +79,21 @@ public class Startup
                         settings.LatestUI, settings.ApiUser, settings.ApiKey, settings.UrlMap }
                 });
             }).RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
+            if (Environment.GetEnvironmentVariable("CMS_SITEIMPROVE_MODE") != "live")
+            {
+                endpoints.MapGet("/test/block-errors", (BlockErrorLog log) => log.Snapshot())
+                    .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
+                endpoints.MapPost("/test/block", (HttpContext context, EPiServer.IContentRepository repository) =>
+                {
+                    if (context.Request.Headers["X-Cms-Test"] != "block-regression") return Results.NotFound();
+                    var block = repository.GetDefault<RegressionBlock>(EPiServer.Core.ContentReference.GlobalBlockFolder);
+                    block.Text = "Synthetic block";
+                    var content = (EPiServer.Core.IContent)block;
+                    content.Name = "Regression block";
+                    var reference = repository.Save(content, EPiServer.DataAccess.SaveAction.Publish, EPiServer.Security.AccessLevel.NoAccess);
+                    return Results.Ok(new { contentId = reference.ToString() });
+                }).RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
+            }
             endpoints.MapGet("/test/ready", () => Seed.Ready ? Results.Ok() : Results.StatusCode(503));
         });
     }

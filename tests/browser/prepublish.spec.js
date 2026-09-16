@@ -17,6 +17,9 @@ test.afterEach(async () => {
 });
 
 async function setup(page, options = {}) {
+  const browserErrors = [];
+  page.on('pageerror', error => browserErrors.push(error.name));
+  page.on('console', message => { if (message.type() === 'error') browserErrors.push('console error'); });
   const delivery = await listen((req, res) => {
     res.setHeader('Content-Type', 'text/html');
     res.end('<!doctype html><title>Published</title><main>PUBLISHED CONTENT</main>');
@@ -66,7 +69,7 @@ async function setup(page, options = {}) {
   }, { delivery, options });
   await page.addScriptTag({ path: process.env.SITEIMPROVE_TEST_SCRIPT || path.resolve(__dirname, '../../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/1.0.5/ClientResources/Scripts/siteimprove.js') });
   await page.waitForFunction(() => window._si.some(command => command[0] === 'registerPrepublishCallback'));
-  return { cms, delivery };
+  return { cms, delivery, browserErrors };
 }
 
 async function capture(page) {
@@ -146,7 +149,7 @@ for (const mode of ['cross-origin', 'redirect', 'xfo', 'csp']) {
 
 for (const event of ['/epi/shell/context/changed', 'epi/shell/context/request']) {
   test(`context: Page to Block to Page avoids Block URL requests through ${event}`, async ({ page }) => {
-    const { cms, delivery } = await setup(page);
+    const { cms, delivery, browserErrors } = await setup(page);
     const result = await page.evaluate(async event => {
       const handler = window.subscriptions[event];
       const flush = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -178,6 +181,7 @@ for (const event of ['/epi/shell/context/changed', 'epi/shell/context/request'])
     // This verifies capture resumes on B; it does not test CMS rendering itself.
     await page.frame({ name: 'sitePreview' }).goto(`${cms}/preview?id=43&language=da`);
     expect(await capture(page)).toEqual({ status: 'document', text: 'SECOND DRAFT', url: `${cms}/preview?id=43&language=da` });
+    expect(browserErrors).toEqual([]);
   });
 }
 
@@ -196,7 +200,7 @@ test('context: absent or incomplete context is ignored without throwing or reque
 });
 
 test('starting on a Block still allows the first Page to initialize once', async ({ page }) => {
-  const { delivery } = await setup(page, { initialContext: { id: 'block-99', capabilities: { isPage: false } } });
+  const { delivery, browserErrors } = await setup(page, { initialContext: { id: 'block-99', capabilities: { isPage: false } } });
   expect(await page.evaluate(() => window.requests.filter(request => request.url === '/api/pageUrl'))).toEqual([]);
   await page.evaluate(() => {
     const context = { id: '42_7', language: 'da', capabilities: { isPage: true } };
@@ -206,6 +210,7 @@ test('starting on a Block still allows the first Page to initialize once', async
   await expect.poll(() => page.evaluate(() => window._si.filter(command => command[0] === 'input').map(command => command.slice(0, 3))))
     .toEqual([['input', `${delivery}/da/pages/42_7`, 'fixture-token']]);
   expect(await page.evaluate(() => window.requests.filter(request => request.url === '/api/pageUrl').length)).toBe(1);
+  expect(browserErrors).toEqual([]);
 });
 
 test('a failed page URL lookup resets the page context and the next Page succeeds', async ({ page }) => {
