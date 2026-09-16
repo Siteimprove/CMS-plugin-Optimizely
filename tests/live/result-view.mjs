@@ -24,6 +24,16 @@ export async function openAccessibilityResults(overlay) {
     && await level.getAttribute('aria-selected') !== 'true') await level.click();
 }
 
+export async function openPrepublishOverview(overlay) {
+  await overlay.getByRole('tab', { name: /Prepublish/i })
+    .or(overlay.getByText('Prepublish view', { exact: true })).first().click({ timeout: 30_000 });
+  // The SDK hides scan controls while a topic is selected. Its back action resets the overview.
+  const back = overlay.locator('[data-observe-key="navigation-button-back"]').filter({ visible: true });
+  if (await back.count()) await back.click({ timeout: 30_000 });
+  await expect(overlay.getByRole('button', { name: /^(Run content check|Recheck draft)$/i }))
+    .toBeVisible();
+}
+
 export async function resultViewState(overlay) {
   const issue = overlay.getByText(imageAlternativeRule.label, { exact: true });
   return {
