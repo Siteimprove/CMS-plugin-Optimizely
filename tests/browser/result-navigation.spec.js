@@ -2,11 +2,11 @@ const { test, expect } = require('@playwright/test');
 
 async function fixture(page, expanded, issue) {
   await page.setContent(`<button aria-expanded="${expanded}" onclick="const open=this.getAttribute('aria-expanded')==='true';this.setAttribute('aria-expanded',!open);document.querySelector('section').hidden=open">Accessibility</button>
-    <section ${expanded ? '' : 'hidden'}>${issue ? '<p>Image without a text alternative</p>' : '<p>No accessibility issues</p>'}</section>
+    <section ${expanded ? '' : 'hidden'}>${issue ? '<p>Image missing a text alternative</p>' : '<p>No accessibility issues</p>'}</section>
     <button>Recheck draft</button>`);
 }
 
-test('opens collapsed accessibility results to expose the documented issue', async ({ page }) => {
+test('opens collapsed accessibility results to expose the image alternative issue', async ({ page }) => {
   const { openAccessibilityResults, resultViewState } = await import('../live/result-view.mjs');
   await fixture(page, false, true);
   await openAccessibilityResults(page);
