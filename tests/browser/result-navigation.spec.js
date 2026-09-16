@@ -31,3 +31,19 @@ test('opens Level A when Accessibility is already open', async ({ page }) => {
   await openAccessibilityResults(page);
   await expect(page.locator('#level-a')).toBeVisible();
 });
+
+
+for (const detailed of [true, false]) {
+  test(`scan controls are reachable from ${detailed ? 'issue details' : 'the overview'}`, async ({ page }) => {
+    const { openPrepublishOverview } = await import('../live/result-view.mjs');
+    await page.setContent(`
+      <button role="tab" aria-selected="true">Prepublish</button>
+      <button data-observe-key="navigation-button-back" ${detailed ? '' : 'hidden'}
+        onclick="this.hidden=true;document.querySelector('#scan').hidden=false">Back</button>
+      <section>Accessibility → Level A</section>
+      <button id="scan" ${detailed ? 'hidden' : ''}>Recheck draft</button>`);
+    await openPrepublishOverview(page);
+    await expect(page.getByRole('button', { name: 'Recheck draft' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
+  });
+}
