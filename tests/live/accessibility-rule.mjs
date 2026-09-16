@@ -1,4 +1,4 @@
-// Official check name and mapping:
+// Rule mapping (the UI label was confirmed separately):
 // https://help.siteimprove.com/support/solutions/articles/80000448514
 // https://help.siteimprove.com/support/solutions/articles/80000448497
 export const imageAlternativeRule = Object.freeze({
@@ -6,5 +6,5 @@ export const imageAlternativeRule = Object.freeze({
   apiId: 2,
   criterion: '1.1.1',
   level: 'A',
-  label: 'Image without a text alternative',
+  label: 'Image missing a text alternative',
 });
