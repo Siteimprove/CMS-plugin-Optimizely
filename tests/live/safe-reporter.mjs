@@ -7,7 +7,7 @@ const stages = new Set(['live: entitlement', 'live: CMS login', 'live: public UR
   'live: draft preview', 'live: open login popup', 'live: identity username',
   'live: identity password', 'live: submit login', 'live: report panel', 'live: mapped report data',
   'live: start prepublish', 'live: draft handoff', 'live: loading-state exit',
-  'live: accessibility results', 'live: WCAG 1.1.1 issue detected', 'live: WCAG 1.1.1 issue cleared']);
+  'live: completed scan result', 'live: accessibility results', 'live: WCAG 1.1.1 issue detected', 'live: WCAG 1.1.1 issue cleared']);
 
 export default class SafeReporter {
   results = [];

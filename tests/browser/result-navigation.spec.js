@@ -47,3 +47,13 @@ for (const detailed of [true, false]) {
     await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
   });
 }
+
+
+test('completed clean results can omit the Level A group', async ({ page }) => {
+  const { openAccessibilityResults } = await import('../live/result-view.mjs');
+  await page.setContent(`<button onclick="document.querySelector('section').hidden=false" aria-expanded="false">Accessibility</button>
+    <section hidden>No accessibility issues</section>`);
+  await openAccessibilityResults(page, { levelRequired: false });
+  await expect(page.locator('section')).toBeVisible();
+  await expect(page.getByText('Image missing a text alternative', { exact: true })).toHaveCount(0);
+});
