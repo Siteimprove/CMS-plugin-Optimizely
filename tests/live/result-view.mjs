@@ -5,13 +5,23 @@ const category = overlay => overlay.getByRole('button', { name: /^Accessibility\
   .or(overlay.getByRole('tab', { name: /^Accessibility\b/i }))
   .or(overlay.getByText('Accessibility', { exact: true })).filter({ visible: true }).first();
 
+const levelA = overlay => overlay.getByRole('button', { name: /^Level A(?:\s|$)/ })
+  .or(overlay.getByRole('tab', { name: /^Level A(?:\s|$)/ }))
+  .or(overlay.getByText('Level A', { exact: true })).filter({ visible: true }).first();
+
 export async function openAccessibilityResults(overlay) {
   const issue = overlay.getByText(imageAlternativeRule.label, { exact: true }).filter({ visible: true });
   if (await issue.count()) return;
-  const control = category(overlay);
-  await expect(control).toBeVisible();
-  if (await control.getAttribute('aria-expanded') !== 'true'
-    && await control.getAttribute('aria-selected') !== 'true') await control.click();
+  if (!await levelA(overlay).isVisible()) {
+    const control = category(overlay);
+    await expect(control).toBeVisible();
+    if (await control.getAttribute('aria-expanded') !== 'true'
+      && await control.getAttribute('aria-selected') !== 'true') await control.click();
+  }
+  const level = levelA(overlay);
+  await expect(level).toBeVisible();
+  if (await level.getAttribute('aria-expanded') !== 'true'
+    && await level.getAttribute('aria-selected') !== 'true') await level.click();
 }
 
 export async function resultViewState(overlay) {
