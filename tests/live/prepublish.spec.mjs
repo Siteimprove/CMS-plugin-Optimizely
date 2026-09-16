@@ -1,14 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { openLiveEditor } from './editor.mjs';
+import { observeScanResults } from './scan-results.mjs';
 import { settings } from './settings.mjs';
 import { observeDraft } from './prepublish.mjs';
 import { openAccessibilityResults, openPrepublishOverview, resultViewState } from './result-view.mjs';
 import { publicSdkAsset } from './diagnostics.mjs';
 import { imageAlternativeRule } from './accessibility-rule.mjs';
 
-async function scan(page, evidence, marker) {
+async function scan(page, evidence, marker, results, issueExpected) {
   const overlay = page.frameLocator('iframe.si-iframe-element');
   const before = evidence[marker];
+  const current = results.begin(marker);
   await test.step('live: start prepublish', async () => {
     await openPrepublishOverview(overlay);
     await overlay.getByRole('button', { name: /^(Run content check|Recheck draft)$/i }).click({ timeout: 30_000 });
@@ -23,6 +25,10 @@ async function scan(page, evidence, marker) {
     await expect(overlay.getByRole('button', { name: /Cancel content check/i }))
       .toBeHidden({ timeout: Math.max(1, deadline - Date.now()) });
   });
+  await test.step('live: completed scan result', async () => {
+    await expect.poll(() => current.result?.issuePresent, { timeout: 60_000 }).toBe(issueExpected);
+  });
+  return current.result;
 }
 
 test('prepublish detects WCAG 1.1.1 image alternative issue and clears it after a saved fix', async ({ page, context }) => {
@@ -32,6 +38,7 @@ test('prepublish detects WCAG 1.1.1 image alternative issue and clears it after 
   const fixedMarker = process.env.CMS_DRAFT_FIXED_MARKER;
   expect(Boolean(marker && fixedMarker && marker !== fixedMarker)).toBe(true);
   const evidence = await observeDraft(context, config.cmsOrigin, [marker, fixedMarker]);
+  const results = observeScanResults(page, config.crawledUrl);
   const sdkAssets = new Set();
   const progress = { firstIssueDetected: false, fixedDraftSaved: false, fixedIssueCleared: false };
   page.on('response', response => {
@@ -49,7 +56,7 @@ test('prepublish detects WCAG 1.1.1 image alternative issue and clears it after 
     expect(published.ok()).toBe(true);
     expect(await published.text()).not.toContain(marker);
     await test.step('fresh draft is handed to the SDK and leaves the running state', async () => {
-      await scan(page, evidence, marker);
+      await scan(page, evidence, marker, results, true);
       await test.step('live: accessibility results', async () => {
         await openAccessibilityResults(page.frameLocator('iframe.si-iframe-element'));
       });
@@ -70,9 +77,9 @@ test('prepublish detects WCAG 1.1.1 image alternative issue and clears it after 
       const panel = page.locator('iframe.si-iframe-element');
       if (!await panel.isVisible()) await page.locator('.si-smallbox button.si-button').click();
       await expect(panel).toBeVisible();
-      await scan(page, evidence, fixedMarker);
+      const corrected = await scan(page, evidence, fixedMarker, results, false);
       await test.step('live: accessibility results', async () => {
-        await openAccessibilityResults(page.frameLocator('iframe.si-iframe-element'));
+        await openAccessibilityResults(page.frameLocator('iframe.si-iframe-element'), { levelRequired: corrected.levelAPresent });
       });
       await test.step('live: WCAG 1.1.1 issue cleared', async () => {
         const overlay = page.frameLocator('iframe.si-iframe-element');
