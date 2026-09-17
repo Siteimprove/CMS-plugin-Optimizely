@@ -30,7 +30,7 @@ public class ControllerTests : ServiceFixture
     {
         var page = ContentFixture.Page(42, 7);
         content.Setup(x => x.Get<IContent>(It.Is<ContentReference>(r => r.ID == 42 && r.WorkID == 7), It.Is<LoaderOptions>(l => l.Get<LanguageLoaderOption>().Language.Name == "da"))).Returns(page);
-        helper.Setup(x => x.GetExternalUrl(page)).Returns("https://public.example/da/news");
+        helper.Setup(x => x.GetExternalUrl(page, "da")).Returns("https://public.example/da/news");
         var result = Assert.IsType<JsonResult>(new SiteimproveController(settings.Object, helper.Object).PageUrl("42_7", "da"));
         var json = JObject.FromObject(result.Value);
         Assert.Equal("https://public.example/da/news", (string)json["url"]);
@@ -48,6 +48,7 @@ public class ControllerTests : ServiceFixture
         var result = Assert.IsType<StatusCodeResult>(new SiteimproveController(settings.Object, helper.Object).PageUrl("99", "en"));
         Assert.Equal(400, result.StatusCode);
         helper.Verify(x => x.GetExternalUrl(It.IsAny<PageData>()), Times.Never);
+        helper.Verify(x => x.GetExternalUrl(It.IsAny<PageData>(), It.IsAny<string>()), Times.Never);
     }
 
     private SiteimproveAdminController Admin() => new(settings.Object, helper.Object, Mock.Of<IModuleResourceResolver>());

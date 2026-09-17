@@ -1,5 +1,7 @@
 # Functional tests
 
+See [CST-6191 regional-language validation](docs/cst-6191-validation.md) for the regression evidence and merge-risk assessment.
+
 These tests cover the plugin's configuration, URL handling, authorization,
 publishing integration, and browser callbacks. No Siteimprove account, API key,
 Optimizely database, or running CMS site is needed. All credentials and content
