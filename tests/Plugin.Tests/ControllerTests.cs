@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Newtonsoft.Json.Linq;
+using SiteImprove.Optimizely.Plugin;
 using SiteImprove.Optimizely.Plugin.Controllers;
 using SiteImprove.Optimizely.Plugin.Helper;
 using SiteImprove.Optimizely.Plugin.Models;
@@ -50,7 +51,14 @@ public class ControllerTests : ServiceFixture
         helper.Verify(x => x.GetExternalUrl(It.IsAny<PageData>()), Times.Never);
     }
 
-    private SiteimproveAdminController Admin() => new(settings.Object, helper.Object, Mock.Of<IModuleResourceResolver>());
+    private const string AdminUrl = "/custom-ui/SiteImprove.Optimizely.Plugin/SiteimproveAdmin";
+
+    private SiteimproveAdminController Admin()
+    {
+        var resolver = new Mock<IModuleResourceResolver>();
+        resolver.Setup(x => x.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin")).Returns(AdminUrl);
+        return new(settings.Object, helper.Object, resolver.Object);
+    }
 
     [Fact]
     public void Saving_settings_preserves_token_and_filters_invalid_and_duplicate_mappings()
@@ -62,7 +70,7 @@ public class ControllerTests : ServiceFixture
             new KeyValuePair<string, string>("/relative", "https://public.example"),
             new KeyValuePair<string, string>("https://other.example", "/relative")
         };
-        Assert.IsType<RedirectToActionResult>(Admin().Save(true, false, "fixture-user", "fixture-key", map));
+        Assert.Equal(AdminUrl, Assert.IsType<RedirectResult>(Admin().Save(true, false, "fixture-user", "fixture-key", map)).Url);
         settings.Verify(x => x.SaveToken("existing-token", true, false, "fixture-user", "fixture-key",
             It.Is<Dictionary<string, string>>(m => m.Count == 1 && m["https://cms.example"] == "https://public.example")), Times.Once);
     }
@@ -82,9 +90,7 @@ public class ControllerTests : ServiceFixture
     {
         settings.Setup(x => x.GetSetting()).Returns(new Settings { ApiUser = "fixture-user", ApiKey = "fixture-key" });
         helper.Setup(x => x.EnablePrepublishCheck("fixture-user", "fixture-key")).Returns(success);
-        var result = Assert.IsType<RedirectToActionResult>(Admin().EnablePrepublishCheck(true));
-        Assert.Equal("Index", result.ActionName);
-        if (!success) Assert.Equal(true, result.RouteValues["prepublishError"]);
-        else Assert.Null(result.RouteValues);
+        var result = Assert.IsType<RedirectResult>(Admin().EnablePrepublishCheck(true));
+        Assert.Equal(AdminUrl + (success ? "" : "?prepublishError=true"), result.Url);
     }
 }
