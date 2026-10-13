@@ -81,6 +81,10 @@ public class Startup
             }).RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
             if (Environment.GetEnvironmentVariable("CMS_SITEIMPROVE_MODE") != "live")
             {
+                endpoints.MapGet("/test/regional-targets", (EPiServer.IContentRepository content,
+                    IUrlResolver urls, SiteImprove.Optimizely.Plugin.Helper.ISiteimproveHelper helper) =>
+                    RegionalFixture.Describe(content, urls, helper))
+                    .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
                 endpoints.MapGet("/test/block-errors", (BlockErrorLog log) => log.Snapshot())
                     .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
                 endpoints.MapPost("/test/block", (HttpContext context, EPiServer.IContentRepository repository) =>
