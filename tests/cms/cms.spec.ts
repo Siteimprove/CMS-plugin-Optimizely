@@ -168,7 +168,7 @@ test('prepublish fixture preserves published content while draft edits persist',
 });
 
 
-test('shared blocks are rejected without browser or server errors and page editing recovers', async ({ page, evidence }) => {
+test('shared block drafts use prepublish only and page editing recovers', async ({ page, evidence }) => {
   await login(page);
   await selectPage(page, 'First page');
   const snapshot = async () => {
@@ -182,7 +182,7 @@ test('shared blocks are rejected without browser or server errors and page editi
   expect(created.ok()).toBe(true);
   const { contentId } = await created.json();
   const { plugin } = await (await page.request.get('/test/routes')).json();
-  // A direct unsupported request is a controlled 400, never a type-mismatch exception.
+  // Public-page URL lookup remains page-specific.
   const direct = await page.request.get(`${plugin}/PageUrl?contentId=${encodeURIComponent(contentId)}&locale=en`);
   expect(direct.status()).toBe(400);
   const blockUrlRequests: string[] = [];
@@ -193,9 +193,38 @@ test('shared blocks are rejected without browser or server errors and page editi
   });
   await page.goto(`/episerver/cms/#context=epi.cms.contentdata:///${contentId}`);
   await expect(page.getByText('Regression block', { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.locator('#overlay-context')).toHaveText('');
+  await expect(page.getByRole('button', { name: 'Stub Recheck', exact: true })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Inspect preview callback' })).toBeVisible();
+  await page.getByRole('button', { name: 'Inspect preview callback' }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__overlayEvidence.captures.at(-1)))
+    .toEqual({ text: 'Regression blockSynthetic block draft', type: 'fragment' });
+  await expect(page.locator('iframe[title="Block prepublish preview"]')).toHaveCount(0);
   await selectPage(page, 'Second page');
   await expect(page.locator('#overlay-context')).toContainText('/second-page');
+  await expect(page.getByRole('button', { name: 'Stub Recheck', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Inspect preview callback' }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__overlayEvidence.captures.at(-1)?.type)).toBe('fullPage');
   expect(blockUrlRequests).toEqual([]);
   expect(evidence).toEqual([]);
   expect(await snapshot()).toEqual(before);
+});
+
+test('shared block scan fixture includes a draft-only image without an alternative', async ({ page }) => {
+  await login(page);
+  const created = await page.request.post('/test/block', { headers: { 'X-Cms-Test': 'block-prepublish' } });
+  expect(created.ok()).toBe(true);
+  const { contentId, publishedId, marker } = await created.json();
+  expect(contentId).not.toBe(publishedId);
+  await page.goto(`/episerver/cms/#context=epi.cms.contentdata:///${contentId}`);
+  await expect(page.getByText('Prepublish scan block', { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Inspect preview callback' })).toBeVisible();
+  await page.getByRole('button', { name: 'Inspect preview callback' }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__overlayEvidence.previewImages.at(-1)))
+    .toEqual({ alternative: null });
+  const published = await page.request.get(`/EPiServer/CMS/Content/,,${publishedId}/?epieditmode=true`);
+  expect(published.ok()).toBe(true);
+  const html = await published.text();
+  expect(html).not.toContain('block-test-image');
+  expect(html).not.toContain(marker);
 });

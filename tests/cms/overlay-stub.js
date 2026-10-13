@@ -1,6 +1,6 @@
 (() => {
   if (window.__overlayEvidence) throw new Error('Overlay loaded twice');
-  const evidence = window.__overlayEvidence = { commands: [], rechecks: [], previewHeadings: [], url: null };
+  const evidence = window.__overlayEvidence = { commands: [], rechecks: [], previewHeadings: [], previewImages: [], captures: [], url: null };
   let preview;
   const panel = document.createElement('aside');
   panel.id = 'controlled-overlay';
@@ -18,7 +18,15 @@
   panel.append(recheck);
   const prepublish = document.createElement('button');
   prepublish.textContent = 'Inspect preview callback';
-  prepublish.onclick = () => evidence.previewHeadings.push(preview?.()?.querySelector('h1')?.textContent?.trim() ?? null);
+  prepublish.onclick = async () => {
+    const result = await preview?.();
+    const doc = Array.isArray(result) ? result[0] : result;
+    evidence.previewHeadings.push(doc?.querySelector('h1')?.textContent?.trim() ?? null);
+    evidence.captures.push({ text: doc?.querySelector('main')?.textContent?.trim(), type: Array.isArray(result) ? result[2] : 'fullPage' });
+    const image = doc?.querySelector('#block-test-image');
+    evidence.previewImages.push(image ? { alternative: image.getAttribute('alt') } : null);
+    if (Array.isArray(result)) result[1]();
+  };
   panel.append(prepublish);
   document.body.append(panel);
   function push(command) {
@@ -27,9 +35,11 @@
     if (name === 'input' || name === 'domain') {
       evidence.url = value;
       url.textContent = value;
+      recheck.hidden = !value;
       command[3]?.();
-    } else if (name === 'registerPrepublishCallback') preview = value;
-    else if (name === 'clear') { evidence.url = null; command[1]?.(); }
+    } else if (name === 'registerPrepublishCallback') { preview = value; prepublish.hidden = !value; }
+    else if (name === 'clear') { evidence.url = null; url.textContent = ''; recheck.hidden = true; command[1]?.(); }
+    else if (name === 'setSession') { /* The stub does not authenticate with Siteimprove. */ }
     else if (name !== 'onHighlight' && name !== 'applyDefaultHighlighting')
       throw new Error('Unimplemented plugin command: ' + name);
   }

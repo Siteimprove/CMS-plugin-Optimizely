@@ -53,13 +53,15 @@ npx playwright install --with-deps chromium firefox
 npm test
 ```
 
-There are 32 functional checks: sixteen scenarios in Chromium and Firefox. They load
+There are 58 functional checks: 29 scenarios in Chromium and Firefox. They load
 the complete JavaScript file from the checkout, not a copied implementation or
 downloaded snapshot. Two loopback HTTP servers provide real iframe navigation,
 redirects, origin boundaries, and browser-enforced frame restrictions.
 
 Coverage includes draft capture, URL/token/revision/language handoff, Page to
-Block to Page transitions, missing context, initial Block-to-Page setup, recovery
+Block to Page transitions, shared block fragment capture, draft revisions/languages,
+late URL/token responses, cancellation and temporary-preview cleanup, missing
+context, initial Block-to-Page setup, recovery
 after a URL lookup failure, iframe navigation/replacement, and handing the current
 preview document to the highlighting callback.
 
@@ -82,7 +84,7 @@ Missing/blocked-preview observations run separately:
 npm run test:observations
 ```
 
-These ten checks record the current null/SecurityError behavior in both browsers.
+These ten checks record null returns for missing or inaccessible previews in both browsers.
 Passing means the behavior was observed, not that the real overlay recovered
 gracefully. They are excluded from the default functional test command.
 
