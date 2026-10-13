@@ -43,7 +43,8 @@ def main():
         sys.exit('artifacts/candidate already exists; move it aside before making another candidate.')
     out.mkdir(parents=True)
     with tempfile.TemporaryDirectory(prefix='cms-build-') as temp:
-        source = Path(temp)
+        # Razor loses view directories when the build root uses a symlink such as macOS /var.
+        source = Path(temp).resolve()
         paths = output('git', 'ls-files', '--cached', '--others', '--exclude-standard').splitlines()
         source_hashes = {}
         for name in paths:
