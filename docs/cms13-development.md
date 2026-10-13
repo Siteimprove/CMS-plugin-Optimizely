@@ -28,8 +28,8 @@ Token rotation is POST-only and preserves settings. Admin submissions validate a
 - Build the cross-origin bridge only against a supported capture contract; validate message origins, revisions and stale-result handling.
 - Improve preview availability feedback and containing-page context for blocks and sections.
 - Test language-specific domains, multiple applications and custom headless public routes.
-- Replace blocking API calls and implement recoverable background rechecks, including scheduled publishing and frontend delivery delays.
-- Review the legacy backend recrawl contract before retaining that behaviour.
+- Validate the bounded background queue against CMS publication events, scheduled publishing and frontend delivery delays. Add durable persistence before promising restart-safe delivery.
+- The home page now uses the same page-recheck path as other pages; legacy whole-site recrawl is not submitted.
 - Add connection diagnostics, accessible UI feedback and a protected credential-storage migration where appropriate.
 - Establish a tested compatibility matrix before proposing a release.
 
@@ -42,3 +42,44 @@ Keep credentials in normal environment secret configuration, outside the reposit
 ## Release boundary
 
 Local experimental packages are for development testing only. Do not publish NuGet packages, create releases or describe CMS 13 as supported until live validation and maintainer approval are complete.
+
+## Code review checkpoint — 13 October 2026
+
+Reviewed the C# controllers, settings persistence, URL resolution, publication events, Razor settings UI, protected-module packaging and JavaScript preview integration at commit `62cac81`. Four C# and five JavaScript regression tests passed again. Focused JavaScript simulations reproduced an available callback returning null for a cross-origin preview and a callback capturing the previous page during navigation. No running CMS installation or Siteimprove scan was exercised.
+
+Findings below include behaviour inherited from the CMS 12 implementation. Existing tests passing does not resolve them.
+
+### Initial findings, addressed in 5.0.0-alpha.2
+
+1. **Bind checks and highlights to the selected draft.** `siteimprove.js` tracks revisions for URL/token responses, but its pre-publish and highlight callbacks independently read whichever `sitePreview` document exists. During navigation to a new page, they can still capture the old completed document. `readyState === "complete"` also does not prove that asynchronous frontend rendering has completed. Disable checking during transitions and validate page, language and draft revision at capture time. Invalidate highlights/results after relevant changes.
+2. **Remove unavailable pre-publish actions.** The callback is always registered after authorization, even when the iframe is cross-origin, missing, blank or loading. Those cases return null while the action remains advertised. Update availability as the preview changes and show an actionable explanation. Keep a cross-origin preview out of draft-check testing until its bridge exists.
+3. **Keep service outages from delaying editing and publication.** `ClientResourceProvider` reads settings while building editor resources. If the token is absent, `SettingsRepository` requests it synchronously under a shared lock. Publication events also call synchronous HTTP directly. A slow request can hold editor/settings requests or delay the publish response until the HTTP timeout; failed token generation repeats on later settings reads. Remove outbound HTTP from ordinary settings reads and resource discovery, add bounded asynchronous API handling, and dispatch rechecks independently of publishing.
+4. **Distinguish an unavailable status from disabled pre-publish.** `GetPrepublishCheckEnabled` returns false for network failures, authentication failures and malformed responses. The admin view displays all of these as Disabled. Return a status that allows the UI to distinguish configuration, entitlement and service failures, with an appropriate retry action.
+
+### Additional beta preparation
+
+- Run clean installation and existing-settings upgrade tests against a real CMS 13 database. Test author/admin permissions and antiforgery behaviour through HTTP rather than direct controller calls.
+- Test the full Visual Builder check/fix/recheck workflow, All Properties switching, language/application changes and block/section selection. The current client clears page context on non-page selection.
+- Test service failures, expiry/logout, content read denial, failed rechecks and frontend render delays. Current regression tests do not exercise these paths.
+- Record the CMS version, package version/commit and overlay version used for each beta build. The v2 overlay URL can still receive patch updates; record its exact version for reproducible beta results.
+- Provide installation and removal instructions, a settings/database backup and restore procedure for upgrade tests, known limitations, a test script and a feedback contact.
+- Scheduled/background rechecks may remain excluded from a limited beta if stated clearly. Multi-site/headless routes and cross-origin draft checking need verification before those configurations are included.
+
+### Resolution in 5.0.0-alpha.2
+
+The four findings above are addressed in the local candidate. Preview checks now require a matching, visible, settled document and revalidate before returning it. Mutation, navigation and viewport changes invalidate highlighting. Unavailable previews unregister the check callback and show guidance. Settings reads and resource discovery perform no remote requests. Connection/status actions use asynchronous HTTP with a ten-second timeout; status results distinguish disabled, unconfigured, rejected credentials, denied access and unavailable service. Publication events enqueue bounded background rechecks with limited retries.
+
+For asynchronous same-origin rendering, the frontend must set `data-siteimprove-preview-ready="false"` on the body before an update and `"true"` after rendering the selected draft. A quiet DOM alone cannot prove that an application has finished its asynchronous work. See the testing guide.
+
+The background queue is process-local and is not restart-safe. Delivery delay is configurable, but it is not a delivery-ready acknowledgement from a headless frontend. CMS 13 uses the v2 overlay URL; record its exact version during live tests because patch updates remain possible.
+
+The candidate remains experimental. Browser fixtures use real Chromium with simulated CMS context/endpoints; they do not prove actual Visual Builder lifecycle or Siteimprove result compatibility. Live CMS and account tests remain required.
+
+
+### Verification and remaining dependency gate
+
+The candidate passed 29 C# tests, 17 JavaScript tests and five Chromium fixture tests. The C# tests include the CMS 13 Visual Builder experience/page type contract, API/status failures and background queue behaviour. The candidate package was restored and published in a clean ASP.NET host fixture; the updated protected module and assembly were present in its output. This fixture did not initialize CMS services or connect to a CMS database.
+
+Clean-host restore reported ImageSharp advisories for the version selected by CMS 13.0.0 (`SixLabors.ImageSharp` 3.1.12). The inspected CMS packages constrain it to `[3.1.12,4.0.0)`. Several current advisories list 4.1.2 as patched, outside that range. Resolve these warnings using an Optimizely-supported platform/package combination before external beta deployment; do not override the major version or suppress the warnings to claim readiness. This dependency check is not a finding that the Siteimprove code itself reaches the affected image-processing paths.
+
+References: [TIFF T4 advisory](https://github.com/advisories/GHSA-j9gm-c75j-xc9q), [histogram equalization advisory](https://github.com/advisories/GHSA-j3p4-wp97-rph4), [TIFF T6 advisory](https://github.com/advisories/GHSA-jjfr-hcj7-qf5w).

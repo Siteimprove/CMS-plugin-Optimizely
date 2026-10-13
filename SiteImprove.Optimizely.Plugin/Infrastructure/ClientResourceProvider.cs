@@ -1,43 +1,19 @@
-﻿using EPiServer.Framework.Web.Resources;
-using EPiServer.Shell;
-using SiteImprove.Optimizely.Plugin.Repositories;
 using System.Collections.Generic;
+using EPiServer.Framework.Web.Resources;
+using EPiServer.Shell;
 
-namespace SiteImprove.Optimizely.Plugin.Infrastructure
+namespace SiteImprove.Optimizely.Plugin.Infrastructure;
+
+[ClientResourceProvider]
+public class ClientResourceProvider : IClientResourceProvider
 {
-    [ClientResourceProvider]
-    public class ClientResourceProvider : IClientResourceProvider
+    public IEnumerable<ClientResource> GetClientResources() => new[]
     {
-        public readonly ISettingsRepository _settingsRepository;
-
-        public ClientResourceProvider(ISettingsRepository settingsRepository)
+        new ClientResource
         {
-            _settingsRepository = settingsRepository;
+            Name = "siteimprove.smallbox",
+            Path = "https://cdn.siteimprove.net/cms/overlay-v2.js",
+            ResourceType = ClientResourceType.Script
         }
-
-        public IEnumerable<ClientResource> GetClientResources()
-        {
-            var clientResources = new List<ClientResource>();
-            var settings = this._settingsRepository.GetSetting();
-            if(settings == null || !settings.LatestUI)
-            {
-                clientResources.Add(new ClientResource
-                {
-                    Name = "siteimprove.smallbox",
-                    Path = "https://cdn.siteimprove.net/cms/overlay-v1.js",
-                    ResourceType = ClientResourceType.Script
-                });
-            }
-            else
-            {
-                clientResources.Add(new ClientResource
-                {
-                    Name = "siteimprove.smallbox",
-                    Path = "https://cdn.siteimprove.net/cms/overlay-latest.js",
-                    ResourceType = ClientResourceType.Script
-                });
-            }
-            return clientResources.ToArray();
-        }
-    }
+    };
 }

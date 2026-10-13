@@ -2,11 +2,27 @@
 
 **Experimental CMS 13 port. Incomplete and not supported for production. No release date committed.**
 
-This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.1` identifies a test build; it does not announce a release or a support commitment.
+This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.2` identifies a test build; it does not announce a release or a support commitment.
 
 Visual Builder is the intended visual editing experience. It has not yet been verified end to end in CMS 13. Cross-origin pre-publish checking and highlighting are not implemented.
 
 For the existing CMS 12 implementation and installation instructions, see the repository's default branch.
+
+## Preview scope for an initial beta
+
+An initial beta would target rendered previews served from the same origin as the CMS: the same protocol, hostname and port. A separate hostname, subdomain or port makes a preview cross-origin even when both applications belong to the same organization.
+
+| Capability | Same-origin preview | Cross-origin preview |
+| --- | --- | --- |
+| Published-page insights and recheck requests | Intended for testing where a public URL resolves | Intended for testing where a public URL resolves |
+| Draft pre-publish checking | Initial beta target; live verification required | Not implemented |
+| Issue highlighting in the rendered draft | Initial beta target; live verification required | Not implemented |
+
+The current pre-publish integration reads the preview iframe's document directly. Browsers block that access across origins; CORS does not enable it. Cross-origin draft checks and highlighting need a frontend script to capture the rendered page and receive highlight instructions, plus a supported Siteimprove capture interface.
+
+Unavailable previews now remove the draft-check action and show guidance in the editor. Checks require a visible preview whose URL matches the CMS-generated page, language and draft URL, followed by a settled render. For asynchronous same-origin frontends, see the explicit readiness marker in the testing guide. If participating sites use separate preview frontends, cross-origin support must be completed before inviting them to test draft checking.
+
+Publication events, including scheduled publication, now enqueue recheck requests outside the publish response. The queue is bounded and process-local, with up to three attempts per request. Pending requests are lost on restart; scheduling and delivery timing still need live CMS tests. Checks remain advisory and do not block publishing based on quality results.
 
 ## Implemented so far
 
@@ -17,7 +33,10 @@ For the existing CMS 12 implementation and installation instructions, see the re
 - Separate `siteimprove:use` and `siteimprove:admin` policies; page URL lookup checks content read access.
 - POST-only token rotation, antiforgery validation, retained mappings, and replacement-only masked API key input.
 - Stale asynchronous page/token responses no longer overwrite the current author context.
-- Preview document access handles cross-origin restrictions and rejects blank/loading documents.
+- Draft checks are disabled during navigation and unreadable/loading previews. Highlighting is invalidated by content and viewport changes and does not wrap authored text or images.
+- Settings reads perform no remote requests. Token connection and status actions are asynchronous, with distinct failure messages.
+- Published-page rechecks use a bounded background queue with retries.
+- CMS 13 uses the Siteimprove v2 SDK; the legacy experience flag is retained in stored settings for compatibility.
 - Patched MailKit minimum 4.16.0 because CMS 13.0 selects an affected transitive version (GHSA-9j88-vvj5-vhgr).
 
 ## Build and test
@@ -28,6 +47,11 @@ Requirements: .NET 10 SDK and Node.js 22 or later. Restore uses NuGet.org and th
 dotnet build SiteImprove.Optimizely.Plugin.sln -c Release
 dotnet test SiteImprove.Optimizely.Plugin.sln -c Release
 node --test tests/preview.test.cjs
+
+# Optional browser fixtures, without a CMS installation
+npm ci
+npx playwright install chromium
+npm run test:browser
 ```
 
 Builds do not automatically create a NuGet package. To create an experimental package locally for installation testing:
@@ -37,5 +61,7 @@ dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -
 ```
 
 Generated packages are ignored by Git. This branch adds no publishing or release automation.
+
+See [the installation testing guide](docs/cms13-testing.md) for candidate setup, readiness integration, test steps and rollback.
 
 See [development status and remaining work](docs/cms13-development.md) for validation limits, access changes and the test environment needed.

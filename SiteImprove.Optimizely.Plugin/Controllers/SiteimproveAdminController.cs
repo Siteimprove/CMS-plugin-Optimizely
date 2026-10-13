@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using SiteImprove.Optimizely.Plugin.Services;
 using EPiServer.Framework.Modules;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,12 +18,14 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         private readonly ISettingsRepository _settingsRepo;
         private readonly ISiteimproveHelper _siteimproveHelper;
         private readonly IModuleResourceResolver _moduleResourceResolver;
+        private readonly ISiteimproveApiClient _api;
 
-        public SiteimproveAdminController(ISettingsRepository settingsRepo, ISiteimproveHelper siteimproveHelper, IModuleResourceResolver moduleResourceResolver)
+        public SiteimproveAdminController(ISettingsRepository settingsRepo, ISiteimproveHelper siteimproveHelper, IModuleResourceResolver moduleResourceResolver, ISiteimproveApiClient api)
         {
             _settingsRepo = settingsRepo;
             _siteimproveHelper = siteimproveHelper;
             _moduleResourceResolver = moduleResourceResolver;
+            _api = api;
             Title = "SiteImprove";
         }
 
@@ -29,7 +33,7 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         public string Title { get; set; }
 
         [HttpGet]
-        public ActionResult Index(bool prepublishError = false)
+        public async Task<ActionResult> Index(ContentCheckStatus? operationError = null)
         {
             var settings = _settingsRepo.GetSetting();
 
@@ -40,8 +44,8 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
                 LatestUI = settings.LatestUI,
                 ApiUser = settings.ApiUser,
                 ApiKey = null,
-                PrepublishCheckEnabled = _siteimproveHelper.GetPrepublishCheckEnabled(settings.ApiUser, settings.ApiKey),
-                PrepublishError = prepublishError,
+                PrepublishStatus = await _api.GetPrepublishStatusAsync(settings.ApiUser, settings.ApiKey, HttpContext.RequestAborted),
+                OperationError = operationError,
                 UrlMap = settings.UrlMap,
                 PluginVersion = _siteimproveHelper.GetSiteimprovePluginVersion(),
                 PluginUrl = _moduleResourceResolver.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin"),
@@ -51,23 +55,20 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         }
 
         [HttpPost]
-        public ActionResult RotateToken()
+        public async Task<ActionResult> RotateToken()
         {
-            var settings = _settingsRepo.GetSetting();
-            var token = _siteimproveHelper.RequestToken();
+            var token = await _api.RequestTokenAsync(_siteimproveHelper.GetOptimizelyVersion(), HttpContext.RequestAborted);
             if (string.IsNullOrWhiteSpace(token))
-                return StatusCode(502, "Siteimprove could not issue a token. Existing settings have been retained.");
-            _settingsRepo.SaveToken(token, settings.Recheck, settings.LatestUI,
-                settings.ApiUser, settings.ApiKey, settings.UrlMap);
+                return RedirectToAction(nameof(Index), new { operationError = ContentCheckStatus.Unavailable });
+            _settingsRepo.SetToken(token);
             return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
-        public ActionResult Save(bool recheck, bool latestUI, string apiUser, string apiKey, IEnumerable<KeyValuePair<string, string>> urlMap)
+        public ActionResult Save(bool recheck, string apiUser, string apiKey, IEnumerable<KeyValuePair<string, string>> urlMap)
         {
             var settings = this._settingsRepo.GetSetting();
             settings.Recheck = recheck;
-            settings.LatestUI = latestUI;
             settings.ApiUser = apiUser;
             if (!string.IsNullOrWhiteSpace(apiKey)) settings.ApiKey = apiKey;
 
@@ -87,22 +88,13 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         }
 
         [HttpPost]
-        public ActionResult EnablePrepublishCheck(bool enablePrepublishCheck = false)
+        public async Task<ActionResult> EnablePrepublishCheck(bool enablePrepublishCheck = false)
         {
+            if (!enablePrepublishCheck) return RedirectToAction(nameof(Index));
             var settings = _settingsRepo.GetSetting();
-            var success = true;
-
-            if (enablePrepublishCheck)
-            {
-                success = _siteimproveHelper.EnablePrepublishCheck(settings.ApiUser, settings.ApiKey);
-            }
-
-            if (!success)
-            {
-                return RedirectToAction("Index", new { prepublishError = true });
-            }
-
-            return RedirectToAction("Index");
+            var result = await _api.EnablePrepublishCheckAsync(settings.ApiUser, settings.ApiKey, HttpContext.RequestAborted);
+            return result == ContentCheckStatus.Enabled ? RedirectToAction(nameof(Index))
+                : RedirectToAction(nameof(Index), new { operationError = result });
         }
     }
 }

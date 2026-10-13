@@ -1,9 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using EPiServer.Data;
 using EPiServer.Data.Dynamic;
 using EPiServer.ServiceLocation;
-using SiteImprove.Optimizely.Plugin.Helper;
 using SiteImprove.Optimizely.Plugin.Models;
 
 namespace SiteImprove.Optimizely.Plugin.Repositories
@@ -21,23 +20,15 @@ namespace SiteImprove.Optimizely.Plugin.Repositories
             }
         }
 
-        public string GetToken()
+        public string GetToken() => GetSetting().Token;
+
+        public void SetToken(string token)
         {
+            if (string.IsNullOrWhiteSpace(token)) throw new System.ArgumentException("A token is required.", nameof(token));
             lock (_lock)
             {
-                var settings = SettingStore.LoadAll<Settings>().ToArray().FirstOrDefault();
-
-                if (settings == null || string.IsNullOrWhiteSpace(settings.Token))
-                {
-                    var siteimproveHelper = ServiceLocator.Current.GetInstance<ISiteimproveHelper>();
-                    string token = siteimproveHelper.RequestToken();
-                    SaveToken(token, settings?.Recheck ?? false, settings?.LatestUI ?? true,
-                        settings?.ApiUser, settings?.ApiKey, settings?.UrlMap);
-
-                    return token;
-                }
-
-                return settings.Token;
+                var settings = GetSetting();
+                SaveToken(token, settings.Recheck, settings.LatestUI, settings.ApiUser, settings.ApiKey, settings.UrlMap);
             }
         }
 
@@ -66,18 +57,9 @@ namespace SiteImprove.Optimizely.Plugin.Repositories
         {
             lock (_lock)
             {
-                var settings = SettingStore.LoadAll<Settings>().ToArray().FirstOrDefault();
-
-                if (settings == null || string.IsNullOrWhiteSpace(settings.Token))
-                {
-                    var siteimproveHelper = ServiceLocator.Current.GetInstance<ISiteimproveHelper>();
-                    string token = siteimproveHelper.RequestToken();
-                    SaveToken(token, settings?.Recheck ?? false, settings?.LatestUI ?? true,
-                        settings?.ApiUser, settings?.ApiKey, settings?.UrlMap);
-                    settings = SettingStore.LoadAll<Settings>().ToArray().FirstOrDefault(c => c.Token == token);
-                }
-
-                return settings;
+                // Reading settings must not contact Siteimprove or write a new store row.
+                return SettingStore.LoadAll<Settings>().FirstOrDefault()
+                    ?? new Settings { LatestUI = true, UrlMap = new Dictionary<string, string>() };
             }
         }
     }

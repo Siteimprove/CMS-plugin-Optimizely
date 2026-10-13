@@ -1,10 +1,11 @@
-﻿using EPiServer.Framework;
+using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
 using EPiServer.Shell.Modules;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
+using SiteImprove.Optimizely.Plugin.Services;
 
 namespace SiteImprove.Optimizely.Plugin.Infrastructure
 {
@@ -14,6 +15,14 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
     {
         public void ConfigureContainer(ServiceConfigurationContext context)
         {
+            context.Services.AddHttpClient(SiteimproveApiClient.ClientName, client =>
+                client.Timeout = SiteimproveApiClient.RequestTimeout);
+            context.Services.AddTransient<ISiteimproveApiClient, SiteimproveApiClient>();
+            context.Services.Configure<RecheckQueueOptions>(_ => { });
+            context.Services.AddSingleton<SiteimproveRecheckQueue>();
+            context.Services.AddSingleton<ISiteimproveRecheckQueue>(services => services.GetRequiredService<SiteimproveRecheckQueue>());
+            context.Services.AddHostedService(services => services.GetRequiredService<SiteimproveRecheckQueue>());
+
             context.Services.AddAuthorization(options =>
             {
                 options.AddPolicy(Constants.SiteImproveAuthorizationPolicy,

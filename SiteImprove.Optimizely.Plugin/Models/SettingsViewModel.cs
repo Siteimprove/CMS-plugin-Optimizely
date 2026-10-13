@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace SiteImprove.Optimizely.Plugin.Models
 {
@@ -14,9 +14,10 @@ namespace SiteImprove.Optimizely.Plugin.Models
 
         public string ApiKey { get; set; }
 
-        public bool PrepublishCheckEnabled { get; set; }
+        public ContentCheckStatus PrepublishStatus { get; set; }
 
-        public bool PrepublishError { get; set; }
+        public ContentCheckStatus? OperationError { get; set; }
+
 
         public IDictionary<string, string> UrlMap { get; set; }
 

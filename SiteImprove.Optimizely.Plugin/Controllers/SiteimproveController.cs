@@ -38,7 +38,11 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         }
 
         [HttpGet]
-        public JsonResult Token() => Json(_settingsRepo.GetToken());
+        public ActionResult Token()
+        {
+            var token = _settingsRepo.GetToken();
+            return string.IsNullOrWhiteSpace(token) ? StatusCode(503, new { status = "not-connected" }) : Json(token);
+        }
 
         [HttpGet]
         public ActionResult PageUrl(string contentId, string locale)
@@ -57,7 +61,9 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
                 return Json(new { url = (string)null, isDomain = false, status = "no-page-context" });
 
             var url = _siteimproveHelper.GetExternalUrl(page);
-            return Json(new { url, isDomain = false, status = url == null ? "no-public-url" : "ready" });
+            return Json(new { url, previewUrl = _siteimproveHelper.GetPreviewUrl(page),
+                contentId = page.ContentLink.ToString(), language = page.Language.Name,
+                isDomain = false, status = url == null ? "no-public-url" : "ready" });
         }
     }
 }

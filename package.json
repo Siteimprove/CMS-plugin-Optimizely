@@ -1,0 +1,11 @@
+{
+  "name": "siteimprove-optimizely-cms13-tests",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/preview.test.cjs",
+    "test:browser": "node --test tests/browser.test.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

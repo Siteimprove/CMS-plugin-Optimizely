@@ -1,5 +1,6 @@
 ﻿@using EPiServer.ServiceLocation
 @using SiteImprove.Optimizely.Plugin
+@using SiteImprove.Optimizely.Plugin.Models
 
 @model SiteImprove.Optimizely.Plugin.Models.SettingsViewModel
 
@@ -28,12 +29,12 @@
                                 <div class="epi-uif-card-content-area">
                                     <div class="edit-view__information__card">
                                         <div>
-                                            <div class="edit-view__information__card__detail"><span>Token</span>@Model.Token</div>
+                                            <div class="edit-view__information__card__detail"><span>Connection</span>@(string.IsNullOrWhiteSpace(Model.Token) ? "Not connected. Request a token to connect Siteimprove." : "Connected")</div>
                                         </div>
                                         <form action="@Model.PluginUrl/RotateToken" method="post">
                                             @Html.AntiForgeryToken()
 
-                                            <button type="submit" class="mdc-ripple-upgraded epi-uif-text-button mdc-button mdc-button--unelevated"><div class="mdc-button__ripple"></div><span class="mdc-button__label">Request new token</span></button>
+                                            <button type="submit" class="mdc-ripple-upgraded epi-uif-text-button mdc-button mdc-button--unelevated"><div class="mdc-button__ripple"></div><span class="mdc-button__label">@(string.IsNullOrWhiteSpace(Model.Token) ? "Connect Siteimprove" : "Request new token")</span></button>
                                         </form>
                                     </div>
                                 </div>
@@ -44,10 +45,10 @@
                                 <div class="epi-uif-card-content-area">
                                     <div class="edit-view__information__card">
                                         <div>
-                                            <div class="edit-view__information__card__detail"><span>Pre-publish check</span>@(Model.PrepublishCheckEnabled ? "Enabled" : "Disabled")</div>
+                                            <div class="edit-view__information__card__detail"><span>Pre-publish check</span>@Model.PrepublishStatus.Describe()</div>
                                         </div>
 
-                                        @if (!Model.PrepublishCheckEnabled)
+                                        @if (Model.PrepublishStatus == ContentCheckStatus.Disabled)
                                         {
                                             <form action="@Model.PluginUrl/EnablePrepublishCheck" method="post">
                                             @Html.AntiForgeryToken()
@@ -59,22 +60,10 @@
                                 </div>
                             </div>
                         </div>
-                        @if (Model.PrepublishError)
+                        <p><a href="@Model.PluginUrl">Retry status check</a></p>
+                        @if (Model.OperationError.HasValue)
                         {
-                            <div class="edit-view__content" style="padding-left: 0; padding-right: 0;">
-                                <div class="epi-uif-card edit-view__information mdc-card mdc-card--outlined" tabindex="0" style="min-height: auto; width: auto; background-color: #fff9e6;">
-                                    <div class="epi-uif-card-content-area">
-                                        <div>
-                                            <h2 class="epi-uif-typography mdc-typography--headline4">Sorry, it looks like there is a problem</h2>
-                                            <span class="epi-uif-typography mdc-typography--subtitle2">It was caused by one of two issues:</span>
-                                            <ul>
-                                                <li style="list-style: inside"><span class="epi-uif-typography mdc-typography--body1">You do not have Prepublish as part of your subscription</span></li>
-                                                <li style="list-style: inside"><span class="epi-uif-typography mdc-typography--body1">You do have Prepublish but you need to validate your API key and username in Settings</span></li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <p role="alert">The request could not be completed. @Model.OperationError.Value.Describe()</p>
                         }
                     </div>
                     <div class="edit-view mdc-card--outlined edit-view__content">
@@ -166,45 +155,16 @@
                                                 </div>
                                                 <div class="mdc-checkbox__ripple"></div>
                                             </div>
-                                            @Html.LabelFor(model => model.Recheck, "Recheck pages when an Editor publishes")
+                                            @Html.LabelFor(model => model.Recheck, "Recheck pages after publishing")
                                         </div>
                                     </div>
                                     <div style=" padding-left: 9px;">
                                         <div class="epi-uif-checkbox mdc-form-field">
-                                            <span class="epi-uif-typography mdc-typography--body1" style=" color: rgba(8, 7, 54, 0.6); ">When selected a recheck will be performed whenever an editor publish a page. If a page is scheduled for publish later no recheck will be performed when it is published. The same goes for any other automatic publishing.</span>
+                                            <span class="epi-uif-typography mdc-typography--body1" style=" color: rgba(8, 7, 54, 0.6); ">When enabled, publishing a page queues a recheck, including scheduled publishing. Requests are retried if Siteimprove is unavailable. Pending requests are lost if the CMS restarts.</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="epi-uif-grid-row mdc-layout-grid__inner">
-
-                                    <div class="epi-uif-grid-cell mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
-                                        <div style="margin-top:50px;">
-                                            <strong>
-                                                Plugin Experience
-                                            </strong>
-                                        </div>
-                                        <div class="control">
-                                            <div class="epi-uif-checkbox mdc-form-field">
-                                                <div class="mdc-ripple-upgraded--unbounded mdc-ripple-upgraded mdc-checkbox--upgraded mdc-checkbox mdc-checkbox--selected" style="--mdc-ripple-fg-size:22px; --mdc-ripple-fg-scale:1.81754; --mdc-ripple-left:9px; --mdc-ripple-top:9px;">
-                                                    @Html.CheckBoxFor(model => model.LatestUI, new { @class = "mdc-checkbox__native-control" })
-                                                    <div class="mdc-checkbox__background">
-                                                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24"><path class="mdc-checkbox__checkmark-path" fill="none" stroke="white" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path></svg>
-                                                        <div class="mdc-checkbox__mixedmark"></div>
-                                                    </div>
-                                                    <div class="mdc-checkbox__ripple"></div>
-                                                </div>
-                                                @Html.LabelFor(model => model.LatestUI, "Use latest experience")
-                                            </div>
-                                        </div>
-                                        <div style=" padding-left: 9px;">
-                                            <div class="epi-uif-checkbox mdc-form-field">
-                                                <span class="epi-uif-typography mdc-typography--body1" style=" color: rgba(8, 7, 54, 0.6); ">A new version of the plugin is now available. Please note it is a work in progress and may update over time.</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
                             <div class="epi-uif-grid-row mdc-layout-grid__inner">
                                 <div class="epi-uif-grid-cell mdc-layout-grid__cell">
                                     <div class="form-bottom">

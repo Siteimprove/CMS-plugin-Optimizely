@@ -1,8 +1,5 @@
-﻿using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
+using System;
 using System.Reflection;
-using System.Text;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.Logging;
@@ -10,7 +7,6 @@ using EPiServer.ServiceLocation;
 using EPiServer.Web;
 using EPiServer.Applications;
 using EPiServer.Web.Routing;
-using System.Text.Json;
 using SiteImprove.Optimizely.Plugin.Repositories;
 
 namespace SiteImprove.Optimizely.Plugin.Helper
@@ -41,8 +37,8 @@ namespace SiteImprove.Optimizely.Plugin.Helper
         public string GetSiteimprovePluginVersion()
         {
             var optimizelyAssembly = Assembly.GetAssembly(typeof(SiteimproveHelper));
-            var version = optimizelyAssembly.GetName().Version;
-            return version.ToString(3);
+            return optimizelyAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
+                ?? optimizelyAssembly.GetName().Version.ToString(3);
         }
 
         public string GetExternalUrl(PageData page)
@@ -108,102 +104,21 @@ namespace SiteImprove.Optimizely.Plugin.Helper
             }
         }
 
-        public bool GetPrepublishCheckEnabled(string apiUser, string apiKey)
+        public string GetPreviewUrl(PageData page)
         {
-            using (var client = new HttpClient())
-            {
-                bool enabled = false;
-
-                var byteArray = Encoding.ASCII.GetBytes($"{apiUser}:{apiKey}");
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                var content = "";
-                try
-                {
-                    var response = client.GetAsync($"{Constants.SiteImproveApiUrl}/settings/content_checking").Result;
-                    if(response.IsSuccessStatusCode)
-                    {
-                        content = response.Content.ReadAsStringAsync().Result;
-                        enabled = JsonSerializer.Deserialize<JsonElement>(content).GetProperty("is_ready").GetBoolean();
-                    } 
-                    else
-                    {
-                        _log.Error($"Could not get prepublish check status. Returned status: {response.StatusCode} and reason: {response.ReasonPhrase}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _log.Error($"Could not get prepublish check status. From {content}", ex);
-                }
-
-                return enabled;
-            }
-        }
-
-        public bool EnablePrepublishCheck(string apiUser, string apiKey)
-        {
-            using (var client = new HttpClient())
-            {
-                var byteArray = Encoding.ASCII.GetBytes($"{apiUser}:{apiKey}");
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                try
-                {
-                    var response = client.PostAsync($"{Constants.SiteImproveApiUrl}/settings/content_checking", null).Result;
-
-                    if(!response.IsSuccessStatusCode)
-                    {
-                        _log.Error($"Could not enable prepublish check. Returned status: {response.StatusCode} and reason: {response.ReasonPhrase}");
-                        return false;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _log.Error("Could not enable prepublish check.", ex);
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        public string RequestToken()
-        {
-            var response = string.Empty;
             try
             {
-                using (var client = new HttpClient())
+                return _urlResolver.GetUrl(page.ContentLink, page.Language.Name, new UrlResolverArguments
                 {
-                    // Request a token from Siteimprove
-                    var version = GetOptimizelyVersion();
-                    string data = client.GetStringAsync(string.Format("{0}?cms=Optimizely {1}", Constants.SiteImproveTokenUrl, version)).Result;
-                    response = JsonSerializer.Deserialize<JsonElement>(data).GetProperty("token").GetString();
-                }
+                    ContextMode = ContextMode.Edit,
+                    ForceAbsolute = true,
+                    AppendPreviewToken = false
+                });
             }
             catch (Exception ex)
             {
-                _log.Error("An error occured requesting token. perhaps its a wrong version - a version is required for generating a token ", ex);
-            }
-            return response;
-        }
-
-        public void PassEvent(string type, string url, string token)
-        {
-            var data = new { url, type, token };
-            try
-            {
-                using (var client = new HttpClient())
-                {
-                    var content = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
-                    var response = client.PostAsync(Constants.SiteImproveRecheckUrl, content).Result;
-                    response.EnsureSuccessStatusCode();
-                }
-                _log.Information($"Siteimprove recheck called with type {type} for url {url}");
-            }
-            catch (Exception ex)
-            {
-                _log.Error(string.Format("An error occured requesting {0}. perhaps token is missing? - A token are required for this operation ", type), ex);
+                _log.Warning("Could not resolve the draft preview URL.", ex);
+                return null;
             }
         }
     }
