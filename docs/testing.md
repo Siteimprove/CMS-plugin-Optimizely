@@ -1,6 +1,6 @@
 # Build and CMS integration tests
 
-Status: the package checks and all five real-CMS browser tests passed on x64 Linux. See [validation](validation.md) for the run, source commit, candidate checksum and remaining limits.
+Status: the package checks and all 13 real-CMS browser tests passed on both locked CMS profiles on x64 Linux. See [regional-language validation](cst-6191-validation.md) for the before/after results, run links, candidate checksum and live-report limitations. Earlier integration results are in [validation](validation.md).
 
 ## Baseline and scope
 
@@ -33,7 +33,7 @@ The old Optimizely feed URL returned 404 during inspection. `NuGet.config` now u
 
 The source registers `input`/`domain`, `onHighlight`, `registerPrepublishCallback`, `applyDefaultHighlighting` and `clear` queue commands. Publishing invokes the backend `cms-recheck` endpoint. There is no plugin-owned manual Recheck command or button. `Stub Recheck` verifies that the stub receives the selected URL and emits one simulated request; it does not test the real overlay's manual Recheck implementation. Prepublish coverage verifies current preview DOM delivery and stubbed configuration status, not an external content-check report.
 
-The browser suite covers configuration persistence, two-page selection, mapped URLs, installed asset failures, repeated navigation/reload, delayed/failed CDN loading, preview callbacks, and a `WebEditors` user without an allowed plugin role. The plugin currently has no dedicated overlay error/retry UI; the failure scenario checks CMS usability and reload recovery. The five scenarios passed against the pinned CMS baseline. The constructor and initialization lifecycle are not redesigned by this change.
+The browser suite covers configuration persistence, two-page selection, mapped URLs, installed asset failures, repeated navigation/reload, delayed/failed CDN loading, preview callbacks, and a `WebEditors` user without an allowed plugin role. It also covers persisted draft corrections, shared-block rejection and recovery, and six regional routing cases. The regional fixtures enable language branches, create translations and drafts, persist fallback/replacement settings, and check the installed PageUrl action against real public routes and rendered content. The plugin currently has no dedicated overlay error/retry UI; the failure scenario checks CMS usability and reload recovery. The constructor and initialization lifecycle are not redesigned by this change.
 
 ## Local reproduction
 
@@ -74,7 +74,7 @@ CI runs units, clean package verification, then the real-CMS smoke suite. `Packa
 
 Artifacts retain the package, checksum, source/dependency manifest, resolved host graph and failure evidence for seven days. Browser traces start after login and are retained only on failures. Screenshots and console summaries use synthetic data; query strings and response bodies are not included in console summaries. Raw host logs are sanitized before upload and excluded by artifact patterns. Never use live credentials with this deterministic host. SQL readiness/CMS readiness/total elapsed time, SQL resource usage and aggregate child peak RSS are recorded when execution is possible. The successful run measured 27.4 seconds from smoke-script start to CMS readiness and 57.45 seconds through tests and cleanup; see the validation record. Keep the full suite on PRs until measured results justify a documented change.
 
-The release-candidate workflow accepts `vMAJOR.MINOR.PATCH` tags or equivalent manual version input and checks it against the project version. It runs the functional suite and the same package/CMS pipeline. Only after all required jobs succeed does a separate job create an unpublished GitHub Release for `vMAJOR.MINOR.PATCH`. That job alone has `contents: write`; ordinary PR builds keep read-only permissions.
+The release-candidate workflow runs only through **Run workflow**, accepts a `MAJOR.MINOR.PATCH` version input and checks it against the project version. Tag pushes do not start candidate creation. It runs the functional suite and the same package/CMS pipeline. Only after all required jobs succeed does a separate job create an unpublished GitHub Release for `vMAJOR.MINOR.PATCH`. That job alone has `contents: write`; ordinary PR builds keep read-only permissions.
 
 The draft attaches the tested `.nupkg`, `SHA256SUMS`, `manifest.json` and plugin dependency lockfile. The package is downloaded from the same run and verified again against the expected version, source commit and checksum; it is never rebuilt for upload. Notes identify the source, checksum, validation run, automated upgrade coverage and outstanding live checks. These release assets remain available beyond the seven-day Actions artifact window until the draft or assets are deleted.
 

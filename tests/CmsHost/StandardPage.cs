@@ -8,6 +8,7 @@ namespace CmsHost;
 [ContentType(DisplayName = "Standard page", GUID = "ea668fae-6c3f-4a63-9311-54d1d9487d01")]
 public class StandardPage : PageData
 {
+    [CultureSpecific]
     public virtual string Heading { get; set; } = "";
     public virtual string TestMarker { get; set; } = "";
     public virtual bool IncludeTestImage { get; set; }

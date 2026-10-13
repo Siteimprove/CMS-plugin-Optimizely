@@ -107,6 +107,8 @@ public static class Seed
         }
         else
         {
+            if (Environment.GetEnvironmentVariable("CMS_UPGRADE_PHASE") != "before")
+                RegionalFixture.Seed(services, start);
             var target = content.GetDefault<StandardPage>(start.ContentLink, CultureInfo.GetCultureInfo("en"));
             target.Name = "Draft test page";
             target.URLSegment = "draft-test-page";
