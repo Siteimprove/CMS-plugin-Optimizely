@@ -1,5 +1,7 @@
 # Functional tests
 
+See [CST-6191 regional-language validation](docs/cst-6191-validation.md) for the regression evidence and merge-risk assessment.
+
 These tests cover the plugin's configuration, URL handling, authorization,
 publishing integration, and browser callbacks. No Siteimprove account, API key,
 Optimizely database, or running CMS site is needed. All credentials and content
@@ -14,7 +16,7 @@ dotnet restore tests/Plugin.Tests/Plugin.Tests.csproj --locked-mode
 dotnet test tests/Plugin.Tests/Plugin.Tests.csproj --configuration Release --no-restore -p:GeneratePackageOnBuild=false --logger 'trx;LogFilePrefix=backend' --results-directory test-results/backend
 ```
 
-The 64 backend cases run on both .NET 6 and .NET 8. The tests build and reference
+The 85 backend cases run on both .NET 6 and .NET 8. The tests build and reference
 the actual plugin project and locked Optimizely dependencies. They do not establish
 compatibility with every CMS 12 release. The plugin still targets .NET 6, which
 produces an end-of-support build warning; this PR does not change that target.
@@ -23,6 +25,7 @@ produces an end-of-support build warning; this PR does not change that target.
 | --- | --- |
 | Page URL controller | Revision and language; direct Block request returns HTTP 400 without a typed Page lookup. |
 | URL mapping | Host/scheme/port matching; preservation of page paths and query strings; independent sites and language paths; missing URLs/sites and resolver errors. |
+| Regional URLs | Selected locales across 11 regional branches; configured fallback, translated content, public references, missing locales/routes and existing custom helpers. Real CMS routing is covered separately in the integration suite. |
 | Settings | First save, update and reload; URL maps; token reuse; automatic/manual renewal; failed renewal preserves configuration; concurrent first requests generate one token; unavailable service does not create a blank record. |
 | Admin actions | Save inputs, valid and duplicate URL maps, empty mapping rows, and Prepublish enablement outcome; module redirects with and without a conventional route. |
 | Authorization | Real ASP.NET middleware and production policy/controller attributes; all four configured roles; anonymous and unauthorized callers; protected reads and writes. |
@@ -50,7 +53,7 @@ npx playwright install --with-deps chromium firefox
 npm test
 ```
 
-There are 20 functional checks: ten scenarios in Chromium and Firefox. They load
+There are 32 functional checks: sixteen scenarios in Chromium and Firefox. They load
 the complete JavaScript file from the checkout, not a copied implementation or
 downloaded snapshot. Two loopback HTTP servers provide real iframe navigation,
 redirects, origin boundaries, and browser-enforced frame restrictions.

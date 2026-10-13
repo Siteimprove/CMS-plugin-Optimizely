@@ -3,7 +3,7 @@
 <!doctype html>
 <html lang="en">
 <head><title>@Model.Name</title></head>
-<body><main><h1>@Html.PropertyFor(p => p.Heading)</h1>
+<body><main><h1 data-content-language="@Model.Language.Name">@Html.PropertyFor(p => p.Heading)</h1>
 @if (!string.IsNullOrEmpty(Model.TestMarker))
 {
     <p id="live-test-marker">@Model.TestMarker</p>
