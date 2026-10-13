@@ -94,12 +94,15 @@ public class PublishEventTests : ServiceFixture
     }
 
     [Theory]
-    [InlineData(false, "https://cdn.siteimprove.net/cms/overlay-v1.js")]
-    [InlineData(true, "https://cdn.siteimprove.net/cms/overlay-latest.js")]
+    [InlineData(false, "/custom/plugin/1.0.5/ClientResources/Scripts/overlay-loader.js?version=v1")]
+    [InlineData(true, "/custom/plugin/1.0.5/ClientResources/Scripts/overlay-loader.js?version=latest")]
     public void Interface_choice_loads_exactly_one_matching_script(bool latest, string expected)
     {
         settings.Setup(x => x.GetSetting()).Returns(new Settings { LatestUI = latest });
-        var script = Assert.Single(new ClientResourceProvider(settings.Object).GetClientResources());
+        var resources = new Mock<EPiServer.Framework.Modules.IModuleResourceResolver>();
+        resources.Setup(x => x.ResolvePath(SiteImprove.Optimizely.Plugin.Constants.SiteImproveModuleName, "1.0.5/ClientResources/Scripts/overlay-loader.js"))
+            .Returns("/custom/plugin/1.0.5/ClientResources/Scripts/overlay-loader.js");
+        var script = Assert.Single(new ClientResourceProvider(settings.Object, resources.Object).GetClientResources());
         Assert.Equal(expected, script.Path);
     }
 }

@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using SiteImprove.Optimizely.Plugin;
 using SiteImprove.Optimizely.Plugin.Controllers;
 using SiteImprove.Optimizely.Plugin.Helper;
 using SiteImprove.Optimizely.Plugin.Infrastructure;
@@ -23,7 +24,7 @@ namespace Plugin.Tests;
 
 public class AuthorizationTests
 {
-    private static TestServer Server()
+    private static TestServer Server(bool conventionalRoute = true, bool prepublishSuccess = true)
     {
         return new TestServer(new WebHostBuilder().ConfigureServices(services => {
             services.AddLogging();
@@ -36,13 +37,22 @@ public class AuthorizationTests
             settings.Setup(x => x.GetToken()).Returns("fixture-token");
             settings.Setup(x => x.GetSetting()).Returns(new Settings { Token = "fixture-token" });
             services.AddSingleton(settings.Object);
-            services.AddSingleton(Mock.Of<ISiteimproveHelper>());
-            services.AddSingleton(Mock.Of<IModuleResourceResolver>());
+            var helper = new Mock<ISiteimproveHelper>();
+            helper.Setup(x => x.EnablePrepublishCheck(It.IsAny<string>(), It.IsAny<string>())).Returns(prepublishSuccess);
+            services.AddSingleton(helper.Object);
+            var resolver = new Mock<IModuleResourceResolver>();
+            resolver.Setup(x => x.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin"))
+                .Returns("/custom-ui/SiteImprove.Optimizely.Plugin/SiteimproveAdmin");
+            services.AddSingleton(resolver.Object);
         }).Configure(app => {
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseEndpoints(endpoints => endpoints.MapControllerRoute("default", "{controller}/{action}"));
+            app.UseEndpoints(endpoints => {
+                if (conventionalRoute)
+                    endpoints.MapControllerRoute("default", "{controller}/{action}/{id?}");
+                endpoints.MapControllerRoute("module", "custom-ui/SiteImprove.Optimizely.Plugin/{controller}/{action=Index}");
+            });
         }));
     }
 
@@ -76,6 +86,30 @@ public class AuthorizationTests
             Assert.Equal(expected, (await client.GetAsync(path)).StatusCode);
         Assert.Equal(expected, (await client.PostAsync("/SiteimproveAdmin/Save", new FormUrlEncodedContent(new Dictionary<string, string>()))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/Siteimprove/IsAuthorized")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData(false, "Save", false, true)]
+    [InlineData(true, "Save", false, true)]
+    [InlineData(false, "EnablePrepublishCheck", true, true)]
+    [InlineData(true, "EnablePrepublishCheck", true, true)]
+    [InlineData(false, "EnablePrepublishCheck", true, false)]
+    [InlineData(true, "EnablePrepublishCheck", true, false)]
+    [InlineData(false, "EnablePrepublishCheck", false, true)]
+    [InlineData(true, "EnablePrepublishCheck", false, true)]
+    public async Task Admin_posts_redirect_to_the_module_under_either_route_setup(
+        bool conventionalRoute, string action, bool enable, bool success)
+    {
+        using var server = Server(conventionalRoute, success);
+        using var client = server.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Fixture-Role", "CmsAdmins");
+        const string moduleUrl = "/custom-ui/SiteImprove.Optimizely.Plugin/SiteimproveAdmin";
+        var response = await client.PostAsync(moduleUrl + "/" + action,
+            new FormUrlEncodedContent(new Dictionary<string, string> {
+                ["enablePrepublishCheck"] = enable.ToString()
+            }));
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal(moduleUrl + (success ? "" : "?prepublishError=true"), response.Headers.Location?.OriginalString);
     }
 
     private sealed class FixtureAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>

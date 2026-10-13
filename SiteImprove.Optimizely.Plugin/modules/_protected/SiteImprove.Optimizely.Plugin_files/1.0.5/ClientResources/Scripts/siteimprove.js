@@ -38,7 +38,7 @@
                         topic.subscribe('epi/shell/context/request', this.contextChange.bind(this));
                         topic.subscribe('/epi/cms/content/statuschange/', this.statusChange.bind(this));
 
-                        var si = window._si || [];
+                        var si = window._si = window._si || [];
                         var getPreviewDom = this.getPreviewDom;
 
                         si.push([
@@ -46,7 +46,7 @@
                             function (highlightInfo) {
                                 var dom = getPreviewDom();
                                 if (dom) {
-                                    si.push(['applyDefaultHighlighting', highlightInfo, dom]);
+                                    window._si.push(['applyDefaultHighlighting', highlightInfo, dom]);
                                 }
                             },
                         ]);
@@ -132,7 +132,7 @@
              * Request token from backoffice and sends request to SiteImprove
              */
             pushSi: function (method, url, callback) {
-                var si = window._si || [];
+                var si = window._si = window._si || [];
 
                 if (method === 'clear') { //special case, does not ask for token
                     si.push([
@@ -146,8 +146,8 @@
                 } else {
                     request.get(window.epi.routes.getActionPath({ moduleArea: "SiteImprove.Optimizely.Plugin", controller: "Siteimprove", action: "token" }), { handleAs: 'json' })
                         .then(function (response) {
-                            // relay to SiteImprove
-                            si.push([
+                            // Use the current queue if the overlay loaded while the token request was pending.
+                            window._si.push([
                                 method, url, response, function () {
                                     //console.log('SiteImprove pass: ' + method + ' - ' + url + (callback ? " with callback" : ""));
                                     if (callback) {

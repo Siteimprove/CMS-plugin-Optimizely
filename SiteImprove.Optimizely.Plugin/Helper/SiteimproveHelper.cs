@@ -27,6 +27,11 @@ namespace SiteImprove.Optimizely.Plugin.Helper
         {
         }
 
+        public SiteimproveHelper(ISettingsRepository settingsRepository, IHttpClientFactory httpClientFactory)
+            : this(settingsRepository, () => httpClientFactory.CreateClient("Siteimprove"), LogManager.GetLogger(typeof(SiteimproveHelper)))
+        {
+        }
+
         internal SiteimproveHelper(ISettingsRepository settingsRepository, Func<HttpClient> createHttpClient, ILogger log)
         {
             _settingsRepo = settingsRepository;

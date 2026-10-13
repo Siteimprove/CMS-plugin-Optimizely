@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -27,7 +28,7 @@ jobs:
         with:
           dotnet-version: |
             6.0.x
-            8.0.x
+            8.0.425
       - name: Restore locked dependencies
         run: dotnet restore tests/Plugin.Tests/Plugin.Tests.csproj --locked-mode
       - name: Test backend on .NET 6 and .NET 8

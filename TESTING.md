@@ -16,7 +16,7 @@ dotnet restore tests/Plugin.Tests/Plugin.Tests.csproj --locked-mode
 dotnet test tests/Plugin.Tests/Plugin.Tests.csproj --configuration Release --no-restore -p:GeneratePackageOnBuild=false --logger 'trx;LogFilePrefix=backend' --results-directory test-results/backend
 ```
 
-The 56 backend cases run on both .NET 6 and .NET 8. The tests build and reference
+The 64 backend cases run on both .NET 6 and .NET 8. The tests build and reference
 the actual plugin project and locked Optimizely dependencies. They do not establish
 compatibility with every CMS 12 release. The plugin still targets .NET 6, which
 produces an end-of-support build warning; this PR does not change that target.
@@ -26,7 +26,7 @@ produces an end-of-support build warning; this PR does not change that target.
 | Page URL controller | Revision and language; direct Block request returns HTTP 400 without a typed Page lookup. |
 | URL mapping | Host/scheme/port matching; preservation of page paths and query strings; independent sites and language paths; missing URLs/sites and resolver errors. |
 | Settings | First save, update and reload; URL maps; token reuse; automatic/manual renewal; failed renewal preserves configuration; concurrent first requests generate one token; unavailable service does not create a blank record. |
-| Admin actions | Save inputs, valid and duplicate URL maps, empty mapping rows, and Prepublish enablement outcome. |
+| Admin actions | Save inputs, valid and duplicate URL maps, empty mapping rows, and Prepublish enablement outcome; module redirects with and without a conventional route. |
 | Authorization | Real ASP.NET middleware and production policy/controller attributes; all four configured roles; anonymous and unauthorized callers; protected reads and writes. |
 | Publish events | Recheck URL/token; disabled rechecks, Blocks, missing URLs and background events; start-page recrawl transition; shutdown/reinitialization avoid duplicate subscriptions. |
 | Overlay selection | Exactly one script matching the latest-interface setting. |
@@ -113,3 +113,7 @@ Still validate installation/module loading in a real CMS, actual editor event
 timing, database persistence, and representative CMS configurations. A separate
 authenticated Siteimprove smoke test should resolve a known public page and
 confirm a fresh Prepublish scan detects a deliberate issue in the current draft.
+
+## Generated-package CMS integration
+
+See [build and CMS integration tests](docs/testing.md) for the separate real-CMS suite. It installs the generated NuGet package and uses controlled external responses. The existing commands above retain their functional-test scope.
