@@ -1,6 +1,6 @@
 # Build and CMS integration tests
 
-Status: the package checks and all five real-CMS browser tests passed on x64 Linux. See [validation](validation.md) for the run, source commit, candidate checksum and remaining limits.
+Status: the package checks and all 13 real-CMS browser tests passed on both locked CMS profiles on x64 Linux. See [regional-language validation](cst-6191-validation.md) for the before/after results, run links, candidate checksum and live-report limitations. Earlier integration results are in [validation](validation.md).
 
 ## Baseline and scope
 
@@ -33,7 +33,7 @@ The old Optimizely feed URL returned 404 during inspection. `NuGet.config` now u
 
 The source registers `input`/`domain`, `onHighlight`, `registerPrepublishCallback`, `applyDefaultHighlighting` and `clear` queue commands. Publishing invokes the backend `cms-recheck` endpoint. There is no plugin-owned manual Recheck command or button. `Stub Recheck` verifies that the stub receives the selected URL and emits one simulated request; it does not test the real overlay's manual Recheck implementation. Prepublish coverage verifies current preview DOM delivery and stubbed configuration status, not an external content-check report.
 
-The browser suite covers configuration persistence, two-page selection, mapped URLs, installed asset failures, repeated navigation/reload, delayed/failed CDN loading, preview callbacks, and a `WebEditors` user without an allowed plugin role. The plugin currently has no dedicated overlay error/retry UI; the failure scenario checks CMS usability and reload recovery. The five scenarios passed against the pinned CMS baseline. The constructor and initialization lifecycle are not redesigned by this change.
+The browser suite covers configuration persistence, two-page selection, mapped URLs, installed asset failures, repeated navigation/reload, delayed/failed CDN loading, preview callbacks, and a `WebEditors` user without an allowed plugin role. It also covers persisted draft corrections, shared-block rejection and recovery, and six regional routing cases. The regional fixtures enable language branches, create translations and drafts, persist fallback/replacement settings, and check the installed PageUrl action against real public routes and rendered content. The plugin currently has no dedicated overlay error/retry UI; the failure scenario checks CMS usability and reload recovery. The constructor and initialization lifecycle are not redesigned by this change.
 
 ## Local reproduction
 
