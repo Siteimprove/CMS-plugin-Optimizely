@@ -2,9 +2,9 @@
 
 **Experimental CMS 13 port. Incomplete and not supported for production. No release date committed.**
 
-This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.2` identifies a test build; it does not announce a release or a support commitment.
+This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.4` identifies a test build; it does not announce a release or a support commitment.
 
-Visual Builder is the intended visual editing experience. It has not yet been verified end to end in CMS 13. Cross-origin pre-publish checking and highlighting are not implemented.
+Visual Builder is the intended visual editing experience. Same-origin Alloy previews, real prepublish results and issue highlighting have been exercised in a local CMS 13 installation; see the [validation checkpoint](docs/cms13-local-validation.md) for the fixes, evidence and remaining checks. Cross-origin pre-publish checking and highlighting are not implemented.
 
 For the existing CMS 12 implementation and installation instructions, see the repository's default branch.
 

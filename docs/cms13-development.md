@@ -10,6 +10,8 @@ Same-origin preview support is the initial target. Cross-origin preview support 
 
 ## Validation
 
+The [22 October local validation checkpoint](cms13-local-validation.md) records the first real CMS 13 installation, Visual Builder preview correction, live SDK results and alpha.4 highlighting fixes. The earlier evidence below describes the initial port.
+
 The initial port was built against CMS 13.0.0. Local checks cover four C# settings tests and five JavaScript preview/navigation tests. Package assets were also checked in a clean ASP.NET project, without initializing CMS services or a CMS database.
 
 These checks do not establish CMS startup, Visual Builder compatibility, successful Siteimprove scans or production readiness. Retest the current branch using the README commands before review.

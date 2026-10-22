@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {chromium} = require('playwright');
 let server, crossServer, browser, origin, crossOrigin;
-const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.2/ClientResources');
+const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.4/ClientResources');
 function handler(req,res) {
     const url = new URL(req.url,'http://localhost');
     res.setHeader('Content-Type','text/html; charset=utf-8');
@@ -103,5 +103,79 @@ test('switching away from a visible preview removes draft checking',async()=>{
         await p.evaluate(()=>document.querySelector('iframe').style.display='none');
         await p.waitForFunction(()=>plugin.checkAvailable===false);
         assert.match(await p.locator('.siteimprove-preview-status').innerText(),/Open the page preview/);
+    } finally {await p.close();}
+});
+
+test('Visual Builder uses its visible preview instead of the hidden classic iframe',async()=>{
+    const p=await page();
+    try {
+        await p.evaluate(()=>{
+            const classic=document.querySelector('iframe[name="sitePreview"]');
+            classic.style.display='none';
+            classic.src='about:blank';
+            const container=document.createElement('div');
+            container.className='content-preview';
+            const visual=document.createElement('iframe');
+            visual.src='/preview?id=1&version=2&lang=en';
+            visual.style.cssText='width:800px;height:400px';
+            container.append(visual);
+            document.body.append(container);
+        });
+        await p.waitForFunction(()=>plugin.checkAvailable===true && plugin.previewDocument===document.querySelector('.content-preview iframe').contentDocument,{},{timeout:3000});
+        assert.equal(await p.evaluate(async()=>{
+            const dom=await plugin.capturePreview();
+            return dom===document.querySelector('.content-preview iframe').contentDocument;
+        }),true);
+        await p.evaluate(()=>document.querySelector('.content-preview').style.display='none');
+        await p.waitForFunction(()=>plugin.checkAvailable===false);
+    } finally {await p.close();}
+});
+
+test('an unrelated visible iframe cannot stand in for the selected preview',async()=>{
+    const p=await page();
+    try {
+        await p.evaluate(()=>{
+            document.querySelector('iframe[name="sitePreview"]').style.display='none';
+            const container=document.createElement('div');
+            container.className='content-preview';
+            const visual=document.createElement('iframe');
+            visual.src='/preview?id=9&version=2&lang=en';
+            visual.style.cssText='width:800px;height:400px';
+            container.append(visual);
+            document.body.append(container);
+        });
+        await p.waitForFunction(()=>plugin.checkAvailable===false);
+        assert.equal(await p.evaluate(()=>plugin.capturePreview().then(()=>false,()=>true)),true);
+    } finally {await p.close();}
+});
+
+test('linked-image highlights cover the image and preserve its authored link',async()=>{
+    const p=await page();
+    try {
+        const f=p.frames().find(x=>x.name()==='sitePreview');
+        await f.evaluate(()=>document.querySelector('#issue').innerHTML='<a id="image-link" href="#"><img width="120" height="80" alt="Fixture" src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%2280%22/%3E"></a>');
+        await p.waitForFunction(()=>plugin.checkAvailable===true);
+        const before=await f.locator('body').innerHTML();
+        await p.evaluate(async()=>{await plugin.capturePreview();plugin.highlight({highlights:[{selector:'#image-link'}]});});
+        const height=await f.locator('#siteimprove-highlight-layer > div').evaluate(n=>parseFloat(n.style.height));
+        assert.equal(height,80);
+        assert.equal(await f.locator('body').innerHTML(),before);
+    } finally {await p.close();}
+});
+
+test('SDK text-child offsets highlight the requested text after a nested element',async()=>{
+    const p=await page();
+    try {
+        const f=p.frames().find(x=>x.name()==='sitePreview');
+        await f.evaluate(()=>document.querySelector('#issue').innerHTML='<strong>Prefix </strong>Target phrase');
+        await p.waitForFunction(()=>plugin.checkAvailable===true);
+        await p.evaluate(async()=>{await plugin.capturePreview();plugin.highlight({highlights:[{selector:'#issue',offset:{child:1,start:0,length:6}}]});});
+        const positions=await f.evaluate(()=>{
+            const range=document.createRange();
+            const target=document.querySelector('#issue').childNodes[1];
+            range.setStart(target,0);range.setEnd(target,6);
+            return {expected:range.getBoundingClientRect().left,actual:parseFloat(document.querySelector('#siteimprove-highlight-layer > div').style.left)};
+        });
+        assert.ok(Math.abs(positions.expected-positions.actual)<1);
     } finally {await p.close();}
 });

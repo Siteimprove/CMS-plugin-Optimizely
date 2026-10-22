@@ -1,6 +1,6 @@
 # CMS 13 candidate installation testing
 
-Candidate: `5.0.0-alpha.2`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
+Candidate: `5.0.0-alpha.4`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
 
 ## Prepare the environment
 
@@ -32,12 +32,14 @@ dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -
 Copy the package into a temporary local NuGet feed and add that feed to the host solution's development configuration. Keep that configuration outside version control. Install the exact candidate version in the CMS host project:
 
 ```sh
-dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.2
+dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.4
 ```
 
 Restore, build and publish the host into a clean directory. Check that its protected module ZIP and plugin assembly are present. Start CMS and confirm that both admin navigation and the author integration load without console or server errors.
 
 In Siteimprove settings, connect the integration by requesting a token. Save the API username/key and check content-check status. Enable rechecks only after verifying the public URL/domain mapping.
+
+Token connection, API credentials and the browser's Siteimprove sign-in are separate. A connected token does not establish API entitlement. A signed-in browser may still offer prepublish checks while the admin API-status field is unconfigured; record both states when testing.
 
 ## Asynchronous same-origin previews
 

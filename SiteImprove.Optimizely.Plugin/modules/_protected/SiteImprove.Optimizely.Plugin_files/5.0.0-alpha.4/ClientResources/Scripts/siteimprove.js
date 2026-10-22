@@ -76,16 +76,32 @@ define([
             }.bind(this));
         },
         readPreview: function () {
-            var frame = document.querySelector('iframe[name="sitePreview"]');
-            if (!frame || !frame.contentWindow || (frame.getClientRects && frame.getClientRects().length === 0)) return { state: "missing" };
-            try {
-                var dom = frame.contentWindow.document;
-                if (!dom || !dom.body || dom.readyState !== "complete" || dom.URL === "about:blank") return { state: "loading" };
-                return { state: "readable", dom: dom };
-            } catch (error) {
-                if (error.name === "SecurityError") return { state: "cross-origin" };
-                throw error;
+            // Visual Builder leaves the classic iframe hidden and renders an unnamed preview.
+            var frames = document.querySelectorAll('iframe[name="sitePreview"], .content-preview iframe');
+            var fallback = { state: "missing" };
+            for (var i = 0; i < frames.length; i++) {
+                var frame = frames[i];
+                if (!frame.contentWindow || (frame.getClientRects && frame.getClientRects().length === 0)) continue;
+                if (frame.getBoundingClientRect) {
+                    var rect = frame.getBoundingClientRect();
+                    if (rect.width <= 0 || rect.height <= 0) continue;
+                }
+                if (window.getComputedStyle && window.getComputedStyle(frame).visibility !== "visible") continue;
+                try {
+                    var dom = frame.contentWindow.document;
+                    if (!dom || !dom.body || dom.readyState !== "complete" || dom.URL === "about:blank") {
+                        if (fallback.state === "missing") fallback = { state: "loading" };
+                        continue;
+                    }
+                    var readable = { state: "readable", dom: dom };
+                    if (this.matchesPreview(dom)) return readable;
+                    fallback = readable;
+                } catch (error) {
+                    if (error.name !== "SecurityError") throw error;
+                    fallback = { state: "cross-origin" };
+                }
             }
+            return fallback;
         },
         matchesPreview: function (dom) {
             if (!this.expectedPreviewUrl) return false;
@@ -202,7 +218,10 @@ define([
                 var element;
                 try { element = dom.querySelector(issue.selector); } catch (_) { return; }
                 if (!element) return;
-                var rects = [element.getBoundingClientRect()];
+                var target = element;
+                var images = !issue.offset && element.querySelectorAll ? Array.from(element.querySelectorAll(":scope > img")) : [];
+                var rects = images.length ? images.map(function (img) { return img.getBoundingClientRect(); }) : [element.getBoundingClientRect()];
+                if (images.length) target = images[0];
                 if (issue.offset) {
                     var range = this.textRange(dom, element, issue.offset);
                     if (!range) return;
@@ -217,7 +236,7 @@ define([
                     marker.style.height = rect.height + "px";
                     layer.appendChild(marker);
                 });
-                first = first || element;
+                first = first || target;
             }, this);
             if (!first) { this.setStatus("unmatched", "This issue could not be located in the preview. Run a new check."); return; }
             // Keep decorations outside the observed body and framework-managed content nodes.
@@ -227,6 +246,16 @@ define([
         },
         textRange: function (dom, element, offset) {
             if (!Number.isInteger(offset.start) || !Number.isInteger(offset.length) || offset.start < 0 || offset.length <= 0) return null;
+            if (offset.child !== undefined) {
+                // The SDK's offsets are relative to a direct text child when child is supplied.
+                if (!Number.isInteger(offset.child) || offset.child < 0) return null;
+                var child = element.childNodes[offset.child];
+                if (!child || child.nodeType !== 3 || offset.start + offset.length > child.textContent.length) return null;
+                var childRange = dom.createRange();
+                childRange.setStart(child, offset.start);
+                childRange.setEnd(child, offset.start + offset.length);
+                return childRange;
+            }
             var walker = dom.createTreeWalker(element, 4);
             var position = 0, node, start = null, end = null;
             while ((node = walker.nextNode())) {

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
-const source = readFileSync(path.join(__dirname, '../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.2/ClientResources/Scripts/siteimprove.js'), 'utf8');
+const source = readFileSync(path.join(__dirname, '../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.4/ClientResources/Scripts/siteimprove.js'), 'utf8');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function element() {
     return { children: [], style: {}, attributes: {}, setAttribute(k,v) {this.attributes[k]=v;},
@@ -24,7 +24,7 @@ function load(dom=preview()) {
     const requests=[];
     const observers=[];
     const request={get:(action,options)=>new Promise((resolve,reject)=>requests.push({action,options,resolve,reject}))};
-    const document={body:element(),createElement:element,querySelector:()=>frame,addEventListener(){},removeEventListener(){}};
+    const document={body:element(),createElement:element,querySelectorAll:()=>[frame],addEventListener(){},removeEventListener(){}};
     class Observer {constructor(fn){this.fn=fn;observers.push(this);}observe(){}disconnect(){this.disconnected=true;}}
     vm.runInNewContext(source,{window,document,URL,Promise,MutationObserver:Observer,Date:{now:()=>now},
         define:(_,factory)=>{module=factory((_,obj)=>obj,{subscribe:()=>({remove(){}})},request,{},(value,fn)=>Promise.resolve(value).then(fn));}});
@@ -152,6 +152,21 @@ test('text offsets can span multiple text nodes without rewriting them',()=>{
     assert.ok(env.module.textRange(dom,{}, {start:4,length:5}));
     assert.deepEqual(bounds.start,[nodes[0],4]);assert.deepEqual(bounds.end,[nodes[1],3]);
     assert.equal(env.module.textRange(dom,{}, {start:-1,length:1}),null);
+});
+
+test('SDK text offsets select the specified direct text child',()=>{
+    const env=load();
+    const first={nodeType:3,textContent:'A prefix '};
+    const nested={nodeType:1,textContent:'nested text'};
+    const target={nodeType:3,textContent:'target phrase'};
+    const bounds={};
+    const dom={createRange:()=>({setStart:(n,o)=>bounds.start=[n,o],setEnd:(n,o)=>bounds.end=[n,o]})};
+    const parent={childNodes:[first,nested,target]};
+    assert.ok(env.module.textRange(dom,parent,{child:2,start:0,length:6}));
+    assert.deepEqual(bounds.start,[target,0]);
+    assert.deepEqual(bounds.end,[target,6]);
+    assert.equal(env.module.textRange(dom,parent,{child:1,start:0,length:6}),null);
+    assert.equal(env.module.textRange(dom,parent,{child:9,start:0,length:6}),null);
 });
 
 test('module setup checks authorization before reading the content context',async()=>{

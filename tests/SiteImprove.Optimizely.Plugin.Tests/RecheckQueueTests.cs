@@ -129,6 +129,6 @@ public class RecheckQueueTests
         public string GetExternalUrl(PageData page) => "https://public.example/page";
         public string GetPreviewUrl(PageData page) => null;
         public string GetOptimizelyVersion() => "13.0.0";
-        public string GetSiteimprovePluginVersion() => "5.0.0-alpha.2";
+        public string GetSiteimprovePluginVersion() => "5.0.0-alpha.4";
     }
 }
