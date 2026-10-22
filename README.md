@@ -2,7 +2,7 @@
 
 **Experimental CMS 13 port. Incomplete and not supported for production. No release date committed.**
 
-This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.4` identifies a test build; it does not announce a release or a support commitment.
+This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.6` identifies a test build; it does not announce a release or a support commitment.
 
 Visual Builder is the intended visual editing experience. Same-origin Alloy previews, real prepublish results and issue highlighting have been exercised in a local CMS 13 installation; see the [validation checkpoint](docs/cms13-local-validation.md) for the fixes, evidence and remaining checks. Cross-origin pre-publish checking and highlighting are not implemented.
 
@@ -48,7 +48,7 @@ dotnet build SiteImprove.Optimizely.Plugin.sln -c Release
 dotnet test SiteImprove.Optimizely.Plugin.sln -c Release
 node --test tests/preview.test.cjs
 
-# Optional browser fixtures, without a CMS installation
+# Browser fixtures, without a CMS installation
 npm ci
 npx playwright install chromium
 npm run test:browser
@@ -60,7 +60,15 @@ Builds do not automatically create a NuGet package. To create an experimental pa
 dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -c Release -o artifacts/packages
 ```
 
-Generated packages are ignored by Git. This branch adds no publishing or release automation.
+Generated packages are ignored by Git. The CMS 13 validation workflow runs the C#, JavaScript and Chromium suites, builds a candidate package, checks its resources and publishes a clean consumer fixture. It records dependency advisories and retains validation artifacts. It does not publish to NuGet or create a release; a green validation job does not resolve the separate dependency and live acceptance gates.
+
+To repeat the package and consumer checks locally after packing:
+
+```sh
+python3 tests/verify-package.py artifacts/packages/SiteImprove.Optimizely.Plugin.5.0.0-alpha.6.nupkg --publish-host
+```
+
+See the [beta readiness checklist](docs/cms13-beta-readiness.md) for completed checks, remaining release gates and the proposed limited beta scope.
 
 See [the installation testing guide](docs/cms13-testing.md) for candidate setup, readiness integration, test steps and rollback.
 

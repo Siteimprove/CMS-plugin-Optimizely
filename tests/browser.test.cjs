@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {chromium} = require('playwright');
 let server, crossServer, browser, origin, crossOrigin;
-const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.4/ClientResources');
+const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.6/ClientResources');
 function handler(req,res) {
     const url = new URL(req.url,'http://localhost');
     res.setHeader('Content-Type','text/html; charset=utf-8');
@@ -177,5 +177,49 @@ test('SDK text-child offsets highlight the requested text after a nested element
             return {expected:range.getBoundingClientRect().left,actual:parseFloat(document.querySelector('#siteimprove-highlight-layer > div').style.left)};
         });
         assert.ok(Math.abs(positions.expected-positions.actual)<1);
+    } finally {await p.close();}
+});
+
+test('selecting the same page retries context after a temporary connection failure',async()=>{
+    const p=await browser.newPage();
+    try {
+        await p.route('**/api/Token',route=>route.fulfill({status:503,body:'{}'}));
+        await p.goto(origin);
+        await p.waitForFunction(()=>plugin.previewStatus==='unavailable');
+        assert.equal(await p.evaluate(()=>plugin.checkAvailable),false);
+        await p.unroute('**/api/Token');
+        await p.evaluate(()=>plugin.contextChange({id:'1_2',language:'en',capabilities:{isPage:true}}));
+        await p.waitForFunction(()=>plugin.checkAvailable===true);
+    } finally {await p.close();}
+});
+
+test('language and version changes reject the previous capture and its highlights',async()=>{
+    const p=await page();
+    try {
+        const old=p.frames().find(x=>x.name()==='sitePreview');
+        await p.evaluate(async()=>{await plugin.capturePreview();plugin.contextChange({id:'1_3',language:'de',capabilities:{isPage:true}});});
+        await p.waitForFunction(()=>plugin.expectedPreviewUrl?.includes('lang=de'));
+        assert.equal(await p.evaluate(()=>plugin.capturePreview().then(()=>false,()=>true)),true);
+        await p.evaluate(()=>plugin.highlight({highlights:[{selector:'#issue'}]}));
+        assert.equal(await old.locator('#siteimprove-highlight-layer').count(),0);
+        await p.evaluate(()=>document.querySelector('iframe').src='/preview?id=1&version=3&lang=de');
+        await p.waitForFunction(()=>plugin.checkAvailable===true);
+        assert.equal(await p.evaluate(async()=>new URL((await plugin.capturePreview()).URL).searchParams.get('lang')),'de');
+    } finally {await p.close();}
+});
+
+test('viewport changes invalidate highlights and removing the plugin releases its resources',async()=>{
+    const p=await page();
+    try {
+        const f=p.frames().find(x=>x.name()==='sitePreview');
+        await p.evaluate(async()=>{await plugin.capturePreview();plugin.highlight({highlights:[{selector:'#issue'}]});});
+        assert.equal(await f.locator('#siteimprove-highlight-layer').count(),1);
+        await p.evaluate(()=>document.querySelector('iframe').style.width='500px');
+        await p.waitForFunction(()=>plugin.lastCapture===null);
+        assert.equal(await f.locator('#siteimprove-highlight-layer').count(),0);
+        await p.evaluate(()=>plugin.destroy());
+        assert.equal(await p.locator('.siteimprove-preview-status').count(),0);
+        assert.equal(await p.evaluate(()=>_si.filter(x=>x[0]==='registerPrepublishCallback').at(-1)[1]),null);
+        assert.equal(await p.evaluate(()=>_si.filter(x=>x[0]==='onHighlight').at(-1)[1]),null);
     } finally {await p.close();}
 });

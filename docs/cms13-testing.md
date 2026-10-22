@@ -1,6 +1,6 @@
 # CMS 13 candidate installation testing
 
-Candidate: `5.0.0-alpha.4`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
+Candidate: `5.0.0-alpha.6`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
 
 ## Prepare the environment
 
@@ -32,7 +32,7 @@ dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -
 Copy the package into a temporary local NuGet feed and add that feed to the host solution's development configuration. Keep that configuration outside version control. Install the exact candidate version in the CMS host project:
 
 ```sh
-dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.4
+dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.6
 ```
 
 Restore, build and publish the host into a clean directory. Check that its protected module ZIP and plugin assembly are present. Start CMS and confirm that both admin navigation and the author integration load without console or server errors.

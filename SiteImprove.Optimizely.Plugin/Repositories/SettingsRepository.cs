@@ -32,6 +32,17 @@ namespace SiteImprove.Optimizely.Plugin.Repositories
             }
         }
 
+        public void SaveSettings(bool recheck, string apiUser, string apiKey, Dictionary<string, string> urlMap)
+        {
+            lock (_lock)
+            {
+                // Merge submitted fields with the current token and replacement-only API key.
+                var settings = GetSetting();
+                SaveToken(settings.Token, recheck, settings.LatestUI, apiUser,
+                    string.IsNullOrWhiteSpace(apiKey) ? settings.ApiKey : apiKey, urlMap);
+            }
+        }
+
         public void SaveToken(string token, bool recheck = false, bool latestUI = true, string apiUser = null, string apiKey = null, Dictionary<string, string> urlMap = null)
         {
             lock (_lock)

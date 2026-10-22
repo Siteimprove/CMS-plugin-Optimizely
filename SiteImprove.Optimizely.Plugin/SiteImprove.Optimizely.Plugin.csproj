@@ -13,7 +13,7 @@
     <PackageProjectUrl>https://github.com/Siteimprove/CMS-plugin-Optimizely</PackageProjectUrl>
     <PackageIcon>icon.png</PackageIcon>
     <Description>Experimental Siteimprove plugin port for Optimizely CMS 13. Incomplete; not supported for production. No release date committed.</Description>
-    <Version>5.0.0-alpha.4</Version>
+    <Version>5.0.0-alpha.6</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +27,7 @@
     <PackageReference Include="EPiServer.CMS.UI.Core" Version="[13.0.0,14.0.0)" />
     <!-- CMS 13.0 transitively selects an older MailKit with GHSA-9j88-vvj5-vhgr. -->
     <PackageReference Include="MailKit" Version="4.16.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup>

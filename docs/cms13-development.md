@@ -4,7 +4,7 @@ Experimental work; no release date or production support commitment.
 
 ## Scope
 
-The intended workflow is to edit a page in Visual Builder, run a Siteimprove pre-publish check, highlight an issue in the preview and check again after correcting it. The panel should retain page context when switching to All Properties. This workflow still needs live validation.
+The intended workflow is to edit a page in Visual Builder, run a Siteimprove pre-publish check, highlight an issue in the preview and check again after correcting it. Local Alloy testing has exercised this workflow, including real image and text highlights. See the [current beta readiness checklist](cms13-beta-readiness.md) for remaining release gates and validation limits.
 
 Same-origin preview support is the initial target. Cross-origin preview support requires a frontend bridge and confirmation of a supported Siteimprove capture interface. Browser access guards in this branch do not enable cross-origin checks.
 
@@ -24,9 +24,9 @@ Token rotation is POST-only and preserves settings. Admin submissions validate a
 
 ## Remaining work
 
-- Verify clean CMS startup, module routes, protected assets, Razor views and navigation.
+- Repeat the locally verified startup, assets, Razor views and navigation in a representative Opti ID/Graph staging installation.
 - Verify existing settings survive installation upgrades and test real author/admin permissions.
-- Validate same-origin Visual Builder pre-publish checks and element/text highlighting against Siteimprove.
+- Broaden the verified same-origin check/highlight/correction workflow across the supported browser and site matrix.
 - Build the cross-origin bridge only against a supported capture contract; validate message origins, revisions and stale-result handling.
 - Improve preview availability feedback and containing-page context for blocks and sections.
 - Test language-specific domains, multiple applications and custom headless public routes.

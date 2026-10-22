@@ -68,6 +68,16 @@ public class AdminTests
         Assert.Equal("replacement", repo.Settings.ApiKey);
     }
 
+    [Fact]
+    public void SettingsSubmissionDoesNotReadAndResubmitTheTokenOrStoredKey()
+    {
+        var repo = new MemorySettings { RejectReads = true };
+        Controller(repo).Save(false, "updated-user", "", null);
+        Assert.Equal("old-token", repo.Settings.Token);
+        Assert.Equal("key", repo.Settings.ApiKey);
+        Assert.Equal("updated-user", repo.Settings.ApiUser);
+    }
+
     private static SiteimproveAdminController Controller(MemorySettings repo, Api api = null) =>
         new(repo, new Helper(), null, api ?? new Api())
         { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
@@ -87,8 +97,12 @@ public class AdminTests
         public Settings Settings = new() { Token = "old-token", Recheck = true, LatestUI = true,
             ApiUser = "user", ApiKey = "key", UrlMap = new() { ["https://cms.example"] = "https://public.example" } };
         public int Writes;
+        public bool RejectReads;
         public string GetToken() => Settings.Token;
-        public Settings GetSetting() => Settings;
+        public Settings GetSetting() => RejectReads ? throw new InvalidOperationException("Settings submissions must merge inside the repository.") : Settings;
+        public void SaveSettings(bool recheck, string apiUser, string apiKey, Dictionary<string, string> urlMap) =>
+            SaveToken(Settings.Token, recheck, Settings.LatestUI, apiUser,
+                string.IsNullOrWhiteSpace(apiKey) ? Settings.ApiKey : apiKey, urlMap);
         public void SetToken(string token) => SaveToken(token, Settings.Recheck, Settings.LatestUI, Settings.ApiUser, Settings.ApiKey, Settings.UrlMap);
         public void SaveToken(string token, bool recheck = false, bool latestUI = true, string apiUser = null,
             string apiKey = null, Dictionary<string, string> urlMap = null)

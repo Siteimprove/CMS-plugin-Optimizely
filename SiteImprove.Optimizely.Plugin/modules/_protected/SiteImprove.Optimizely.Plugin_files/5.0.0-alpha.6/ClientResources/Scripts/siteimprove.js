@@ -70,6 +70,7 @@ define([
                 this.updateAvailability();
             }.bind(this), function (error) {
                 if (this.disposed || revision !== this.contextRevision) return;
+                this.contextKey = null;
                 this.setStatus("unavailable", error && error.response && error.response.status === 503
                     ? "Ask an administrator to connect Siteimprove in Settings."
                     : "Siteimprove could not load this page's context. Select the page again to retry.");

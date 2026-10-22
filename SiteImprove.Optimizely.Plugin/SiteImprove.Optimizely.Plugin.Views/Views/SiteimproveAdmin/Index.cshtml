@@ -1,4 +1,4 @@
-﻿@using EPiServer.ServiceLocation
+@using EPiServer.ServiceLocation
 @using SiteImprove.Optimizely.Plugin
 @using SiteImprove.Optimizely.Plugin.Models
 
@@ -75,13 +75,13 @@
                             <div class="epi-uif-grid-row mdc-layout-grid__inner">
                                 <div class="epi-uif-grid-cell mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
                                     <div class="control">
-                                        <label class="mdc-ripple-upgraded epi-uif-text-field textfield-wide mdc-text-field mdc-text-field--upgraded mdc-text-field--outlined" aria-labelledby="textfield-API Username-label">
+                                        <label class="mdc-ripple-upgraded epi-uif-text-field textfield-wide mdc-text-field mdc-text-field--upgraded mdc-text-field--outlined" aria-labelledby="api-user-label">
                                             <span class="mdc-text-field__ripple"></span>
-                                            @Html.TextBoxFor(model => model.ApiUser, new { @class = "mdc-text-field__input" })
+                                            @Html.TextBoxFor(model => model.ApiUser, new { @class = "mdc-text-field__input", aria_labelledby = "api-user-label", autocomplete = "username" })
                                             <div class="mdc-notched-outline mdc-notched-outline--upgraded mdc-notched-outline--notched" notch="46.5">
                                                 <div class="mdc-notched-outline__leading"></div>
                                                 <div class="mdc-notched-outline__notch" style="width: 87.5px;">
-                                                    <span id="textfield-Sort index-label" class="mdc-floating-label mdc-floating-label--float-above" style="">API Username</span>
+                                                    <span id="api-user-label" class="mdc-floating-label mdc-floating-label--float-above" style="">API Username</span>
                                                 </div>
                                                 <div class="mdc-notched-outline__trailing"></div>
                                             </div>
@@ -92,13 +92,13 @@
                             <div class="epi-uif-grid-row mdc-layout-grid__inner">
                                 <div class="epi-uif-grid-cell mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
                                     <div class="control">
-                                        <label class="mdc-ripple-upgraded epi-uif-text-field textfield-wide mdc-text-field mdc-text-field--upgraded mdc-text-field--outlined" aria-labelledby="textfield-API Key-label">
+                                        <label class="mdc-ripple-upgraded epi-uif-text-field textfield-wide mdc-text-field mdc-text-field--upgraded mdc-text-field--outlined" aria-labelledby="api-key-label">
                                             <span class="mdc-text-field__ripple"></span>
-                                            @Html.PasswordFor(model => model.ApiKey, new { @class = "mdc-text-field__input", autocomplete = "new-password", placeholder = "Leave blank to keep existing key" })
+                                            @Html.PasswordFor(model => model.ApiKey, new { @class = "mdc-text-field__input", autocomplete = "new-password", aria_labelledby = "api-key-label", aria_describedby = "api-key-help", placeholder = "Leave blank to keep existing key" })
                                             <div class="mdc-notched-outline mdc-notched-outline--upgraded mdc-notched-outline--notched" notch="46.5">
                                                 <div class="mdc-notched-outline__leading"></div>
                                                 <div class="mdc-notched-outline__notch" style="width: 50.5px;">
-                                                    <span id="textfield-Sort index-label" class="mdc-floating-label mdc-floating-label--float-above" style="">API Key</span>
+                                                    <span id="api-key-label" class="mdc-floating-label mdc-floating-label--float-above" style="">API Key</span>
                                                 </div>
                                                 <div class="mdc-notched-outline__trailing"></div>
                                             </div>
@@ -106,6 +106,7 @@
                                     </div>
                                 </div>
                             </div>
+                            <p id="api-key-help">Leave the API key blank to keep the stored key. Token connection and API credentials are configured separately.</p>
                             <div class="epi-uif-grid-row mdc-layout-grid__inner">
                                 <div class="epi-uif-grid-cell mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
                                     <div class="control">
@@ -123,14 +124,14 @@
                                                         @foreach (var (pair, index) in Model.UrlMap.Select((pair, index) => (pair, index)))
                                                         {
                                                             <tr class="epi-uif-data-table-row rmwc-data-table__row mdc-data-table__row">
-                                                                <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + index + "].key", pair.Key, new { style="width:100%" })</td>
-                                                                <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + index + "].value", pair.Value, new { style = "width:100%" })</td>
+                                                                <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + index + "].key", pair.Key, new { style="width:100%", aria_label = $"CMS site URL, row {index + 1}" })</td>
+                                                                <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + index + "].value", pair.Value, new { style = "width:100%", aria_label = $"External site URL, row {index + 1}" })</td>
                                                             </tr>
                                                         }
                                                     }
                                                     <tr class="epi-uif-data-table-row rmwc-data-table__row mdc-data-table__row">
-                                                        <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + (Model.UrlMap?.Count() ?? 0) + "].key", "", new { style = "width:100%" })</td>
-                                                        <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + (Model.UrlMap?.Count() ?? 0) + "].value", "", new { style = "width:100%" })</td>
+                                                        <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + (Model.UrlMap?.Count() ?? 0) + "].key", "", new { style = "width:100%", aria_label = "New CMS site URL" })</td>
+                                                        <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + (Model.UrlMap?.Count() ?? 0) + "].value", "", new { style = "width:100%", aria_label = "New external site URL" })</td>
                                                     </tr>
                                                 </tbody>
                                             </table>

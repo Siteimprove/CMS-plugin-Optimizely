@@ -67,22 +67,17 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         [HttpPost]
         public ActionResult Save(bool recheck, string apiUser, string apiKey, IEnumerable<KeyValuePair<string, string>> urlMap)
         {
-            var settings = this._settingsRepo.GetSetting();
-            settings.Recheck = recheck;
-            settings.ApiUser = apiUser;
-            if (!string.IsNullOrWhiteSpace(apiKey)) settings.ApiKey = apiKey;
-
-            settings.UrlMap = new Dictionary<string, string>();
+            var mappings = new Dictionary<string, string>();
             foreach (var pair in urlMap ?? Array.Empty<KeyValuePair<string, string>>())
             {
                 if (Uri.TryCreate(pair.Key, UriKind.Absolute, out Uri _) &&
                     Uri.TryCreate(pair.Value, UriKind.Absolute, out Uri _))
                 {
-                    settings.UrlMap.TryAdd(pair.Key, pair.Value);
+                    mappings.TryAdd(pair.Key, pair.Value);
                 }
             }
 
-            _settingsRepo.SaveToken(settings.Token, settings.Recheck, settings.LatestUI, settings.ApiUser, settings.ApiKey, settings.UrlMap);
+            _settingsRepo.SaveSettings(recheck, apiUser, apiKey, mappings);
 
             return RedirectToAction("Index");
         }

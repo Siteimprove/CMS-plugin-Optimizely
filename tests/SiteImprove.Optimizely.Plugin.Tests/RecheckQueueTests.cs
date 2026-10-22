@@ -108,6 +108,7 @@ public class RecheckQueueTests
     }
     private class Repo : ISettingsRepository
     {
+        public void SaveSettings(bool recheck, string apiUser, string apiKey, Dictionary<string, string> urlMap) => throw new NotSupportedException();
         public Settings Settings = new() { Token = "token", Recheck = true, LatestUI = true };
         public TaskCompletionSource Read = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Settings GetSetting() { Read.TrySetResult(); return Settings; }
@@ -129,6 +130,6 @@ public class RecheckQueueTests
         public string GetExternalUrl(PageData page) => "https://public.example/page";
         public string GetPreviewUrl(PageData page) => null;
         public string GetOptimizelyVersion() => "13.0.0";
-        public string GetSiteimprovePluginVersion() => "5.0.0-alpha.4";
+        public string GetSiteimprovePluginVersion() => "5.0.0-alpha.6";
     }
 }
