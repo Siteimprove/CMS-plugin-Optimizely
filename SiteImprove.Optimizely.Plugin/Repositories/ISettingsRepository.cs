@@ -7,6 +7,6 @@ public interface ISettingsRepository
 {
     string GetToken();
     void SetToken(string token);
-    void SaveSettings(bool recheck, Dictionary<string, string> urlMap);
+    void SaveSettings(Dictionary<string, string> urlMap);
     Settings GetSetting();
 }

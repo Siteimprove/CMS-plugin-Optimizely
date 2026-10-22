@@ -25,7 +25,6 @@ public class SiteimproveAdminController(ISettingsRepository settingsRepo, ISitei
         var settings = settingsRepo.GetSetting();
         return SettingsView(new SettingsViewModel
         {
-            Recheck = settings.Recheck,
             Saved = saved,
             UrlMap = settings.UrlMap?.Select(pair => new UrlMapping { Key = pair.Key, Value = pair.Value }).ToList()
                 ?? new List<UrlMapping>()
@@ -33,7 +32,7 @@ public class SiteimproveAdminController(ISettingsRepository settingsRepo, ISitei
     }
 
     [HttpPost]
-    public ActionResult Save(bool recheck, List<UrlMapping> urlMap)
+    public ActionResult Save(List<UrlMapping> urlMap)
     {
         var rows = urlMap ?? new List<UrlMapping>();
         var mappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -48,14 +47,15 @@ public class SiteimproveAdminController(ISettingsRepository settingsRepo, ISitei
             if (validSource && validTarget && !mappings.TryAdd(source, target))
                 ModelState.AddModelError($"urlMap[{i}].Key", "Each CMS origin can have only one public origin.");
         }
-        if (!ModelState.IsValid) return SettingsView(new SettingsViewModel { Recheck = recheck, UrlMap = rows });
-        settingsRepo.SaveSettings(recheck, mappings);
+        if (!ModelState.IsValid) return SettingsView(new SettingsViewModel { UrlMap = rows });
+        settingsRepo.SaveSettings(mappings);
         return RedirectToAction(nameof(Index), new { saved = true });
     }
 
     private ActionResult SettingsView(SettingsViewModel model)
     {
         model.PluginVersion = helper.GetSiteimprovePluginVersion();
+        model.MappingScriptUrl = resources.ResolveClientPath(Constants.SiteImproveModuleName, "ClientResources/Scripts/settings.js");
         model.PluginUrl = resources.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin");
         return View("Index", model);
     }

@@ -30,8 +30,8 @@ CMS settings require the admin policy and antiforgery validation. SDK v2 sign-in
 - Build the cross-origin bridge only against a supported capture contract; validate message origins, revisions and stale-result handling.
 - Improve preview availability feedback and containing-page context for blocks and sections.
 - Test language-specific domains, multiple applications and custom headless public routes.
-- Validate the bounded background queue against CMS publication events, scheduled publishing and frontend delivery delays. Add durable persistence before promising restart-safe delivery.
-- The home page now uses the same page-recheck path as other pages; legacy whole-site recrawl is not submitted.
+- Automatic publication rechecks were removed in alpha.9; publishing no longer registers a plugin event handler or starts a recheck queue.
+- Published-page checks can be requested manually through the Siteimprove panel.
 - Test account/subscription denial and sign-out with the hosted SDK, including guidance for unavailable previews.
 - Establish a tested compatibility matrix before proposing a release.
 
@@ -94,3 +94,10 @@ References: [TIFF T4 advisory](https://github.com/advisories/GHSA-j9gm-c75j-xc9q
 The settings form now rejects invalid, incomplete and duplicate origin mappings with visible, field-associated errors and preserves submissions on failure. Saving merges with the latest connection. Existing DDS fields are retained for compatibility but are no longer accepted from the form; obsolete credentials are cleared on writes.
 
 The dependency follow-up uses the vendor's [3.2.0 release](https://github.com/SixLabors/ImageSharp/releases/tag/v3.2.0), [T4 advisory](https://github.com/SixLabors/ImageSharp/security/advisories/GHSA-j9gm-c75j-xc9q) and [v3 build-time licensing documentation](https://docs-v3.sixlabors.com/articles/imagesharp/index.html). This corrects the earlier assumption that only an incompatible major-version upgrade was available. An isolated 3.2.0 build confirmed that the current environment lacks the required Six Labors key. Its NuGet audit still reported the five advisories, so reconcile the feed data with the vendor’s updated ranges before claiming the dependency gate is clear. No dependency override or warning suppression was added.
+
+
+### Mapping editor and publication changes in 5.0.0-alpha.9
+
+Automatic checks after publication are removed, including event subscriptions, queue registration and the recheck API client. The DDS preference remains only for schema compatibility and is cleared on writes. Manual checks in the hosted Siteimprove experience remain available.
+
+Add mapping creates another row immediately and focuses its first field. Remove deletes the selected row without submitting. A single settings save applies all changes. Remaining input names, accessible labels and error references are renumbered after deletion so removing a middle row does not lose later mappings. Regression fixtures use the production row template and script.

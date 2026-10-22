@@ -19,37 +19,46 @@
             @Html.ValidationSummary(false)
         </div>
     }
-    <form action="@Model.PluginUrl/Save" method="post">
+    <form data-siteimprove-mappings action="@Model.PluginUrl/Save" method="post">
         @Html.AntiForgeryToken()
         <h2>Public URL mappings</h2>
-        <p id="mapping-help">Optional: map a CMS site's origin to its public origin when they differ. Include http:// or https:// and a port if needed. Page paths stay the same. Leave both fields empty to remove a mapping.</p>
+        <p id="mapping-help">Optional: map a CMS site's origin to its public origin when they differ. Include http:// or https:// and a port if needed. Page paths stay the same. Add or remove rows, then save your changes.</p>
         <table class="settings-mappings">
-            <thead><tr><th scope="col">CMS origin</th><th scope="col">Public origin</th></tr></thead>
-            <tbody>
-                @for (var i = 0; i <= Model.UrlMap.Count; i++)
+            <thead><tr><th scope="col">CMS origin</th><th scope="col">Public origin</th><th scope="col"><span class="settings-visually-hidden">Actions</span></th></tr></thead>
+            <tbody id="mapping-rows">
+                @for (var i = 0; i < Math.Max(Model.UrlMap.Count, 1); i++)
                 {
                     var row = i < Model.UrlMap.Count ? Model.UrlMap[i] : new SiteImprove.Optimizely.Plugin.Models.UrlMapping();
-                    <tr>
+                    <tr data-mapping-row>
                         <td>
-                            @Html.TextBox($"urlMap[{i}].Key", row.Key, new { aria_label = $"CMS origin, row {i + 1}", aria_invalid = ViewData.ModelState[$"urlMap[{i}].Key"]?.Errors.Count > 0 ? "true" : "false", aria_describedby = $"mapping-help mapping-source-error-{i}", type = "url", placeholder = "https://cms.example.com" })
-                            @Html.ValidationMessage($"urlMap[{i}].Key", null, new { id = $"mapping-source-error-{i}" })
+                            @Html.TextBox($"urlMap[{i}].Key", row.Key, new { data_mapping_field = "Key", aria_label = $"CMS origin, row {i + 1}", aria_invalid = ViewData.ModelState[$"urlMap[{i}].Key"]?.Errors.Count > 0 ? "true" : "false", aria_describedby = $"mapping-help mapping-source-error-{i}", type = "url", placeholder = "https://cms.example.com" })
+                            <span id="mapping-source-error-@i" data-mapping-error="Key">@Html.ValidationMessage($"urlMap[{i}].Key")</span>
                         </td>
                         <td>
-                            @Html.TextBox($"urlMap[{i}].Value", row.Value, new { aria_label = $"Public origin, row {i + 1}", aria_invalid = ViewData.ModelState[$"urlMap[{i}].Value"]?.Errors.Count > 0 ? "true" : "false", aria_describedby = $"mapping-help mapping-target-error-{i}", type = "url", placeholder = "https://www.example.com" })
-                            @Html.ValidationMessage($"urlMap[{i}].Value", null, new { id = $"mapping-target-error-{i}" })
+                            @Html.TextBox($"urlMap[{i}].Value", row.Value, new { data_mapping_field = "Value", aria_label = $"Public origin, row {i + 1}", aria_invalid = ViewData.ModelState[$"urlMap[{i}].Value"]?.Errors.Count > 0 ? "true" : "false", aria_describedby = $"mapping-help mapping-target-error-{i}", type = "url", placeholder = "https://www.example.com" })
+                            <span id="mapping-target-error-@i" data-mapping-error="Value">@Html.ValidationMessage($"urlMap[{i}].Value")</span>
                         </td>
+                        <td><button type="button" class="settings-remove" data-remove-mapping aria-label="Remove mapping row @(i + 1)">Remove</button></td>
                     </tr>
                 }
             </tbody>
         </table>
-        <p>Save to add another mapping row.</p>
-        <h2>Published pages</h2>
-        <p class="settings-checkbox">
-            @Html.CheckBoxFor(model => model.Recheck, new { aria_describedby = "recheck-help" })
-            @Html.LabelFor(model => model.Recheck, "Recheck pages after publishing")
-        </p>
-        <p id="recheck-help">When enabled, publishing a page queues a recheck, including scheduled publishing. Requests are retried if Siteimprove is unavailable. Pending requests are lost if the CMS restarts.</p>
-        <button type="submit" class="settings-save">Save settings</button>
+        <template id="mapping-template">
+            <tr data-mapping-row>
+                <td><input type="url" data-mapping-field="Key" placeholder="https://cms.example.com" aria-invalid="false" /><span data-mapping-error="Key"></span></td>
+                <td><input type="url" data-mapping-field="Value" placeholder="https://www.example.com" aria-invalid="false" /><span data-mapping-error="Value"></span></td>
+                <td><button type="button" class="settings-remove" data-remove-mapping>Remove</button></td>
+            </tr>
+        </template>
+        <div class="settings-actions">
+            <button type="button" id="add-mapping" class="settings-add">Add mapping</button>
+            <button type="submit" class="settings-save">Save settings</button>
+        </div>
+        <p id="mapping-status" role="status" aria-live="polite"></p>
     </form>
     <p class="settings-version">Version @Model.PluginVersion</p>
 </main>
+
+@section AdditionalScripts {
+    <script src="@Model.MappingScriptUrl" defer></script>
+}

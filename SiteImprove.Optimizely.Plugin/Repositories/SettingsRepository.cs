@@ -26,13 +26,12 @@ public class SettingsRepository : ISettingsRepository
         }
     }
 
-    public void SaveSettings(bool recheck, Dictionary<string, string> urlMap)
+    public void SaveSettings(Dictionary<string, string> urlMap)
     {
         lock (Sync)
         {
             // Merge editable fields with the latest connection rather than a stale form snapshot.
             var settings = GetSetting();
-            settings.Recheck = recheck;
             settings.UrlMap = urlMap ?? new Dictionary<string, string>();
             SaveCurrent(settings);
         }
@@ -40,6 +39,7 @@ public class SettingsRepository : ISettingsRepository
 
     private void SaveCurrent(Settings settings)
     {
+        settings.Recheck = false;
         settings.LatestUI = true;
         settings.ApiUser = null;
         settings.ApiKey = null;

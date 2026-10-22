@@ -2,7 +2,7 @@
 
 **Experimental CMS 13 port. Incomplete and not supported for production. No release date committed.**
 
-This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.8` identifies a test build; it does not announce a release or a support commitment.
+This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.9` identifies a test build; it does not announce a release or a support commitment.
 
 Visual Builder is the intended visual editing experience. Same-origin Alloy previews, real prepublish results and issue highlighting have been exercised in a local CMS 13 installation; see the [validation checkpoint](docs/cms13-local-validation.md) for the fixes, evidence and remaining checks. Cross-origin pre-publish checking and highlighting are not implemented.
 
@@ -14,7 +14,7 @@ An initial beta would target rendered previews served from the same origin as th
 
 | Capability | Same-origin preview | Cross-origin preview |
 | --- | --- | --- |
-| Published-page insights and recheck requests | Intended for testing where a public URL resolves | Intended for testing where a public URL resolves |
+| Published-page insights | Intended for testing where a public URL resolves | Intended for testing where a public URL resolves |
 | Draft pre-publish checking | Initial beta target; live verification required | Not implemented |
 | Issue highlighting in the rendered draft | Initial beta target; live verification required | Not implemented |
 
@@ -22,7 +22,7 @@ The current pre-publish integration reads the preview iframe's document directly
 
 Unavailable previews now remove the draft-check action and show guidance in the editor. Checks require a visible preview whose URL matches the CMS-generated page, language and draft URL, followed by a settled render. For asynchronous same-origin frontends, see the explicit readiness marker in the testing guide. If participating sites use separate preview frontends, cross-origin support must be completed before inviting them to test draft checking.
 
-Publication events, including scheduled publication, now enqueue recheck requests outside the publish response. The queue is bounded and process-local, with up to three attempts per request. Pending requests are lost on restart; scheduling and delivery timing still need live CMS tests. Checks remain advisory and do not block publishing based on quality results.
+Publishing does not trigger automatic Siteimprove rechecks. Authors can use the Siteimprove panel to request checks manually. Checks remain advisory and do not block publication.
 
 ## Implemented so far
 
@@ -35,8 +35,8 @@ Publication events, including scheduled publication, now enqueue recheck request
 - The v2 Siteimprove experience only. Prepublish access follows the signed-in account’s subscription and permissions; no API credentials or activation controls are shown in CMS settings.
 - Stale asynchronous page/token responses no longer overwrite the current author context.
 - Draft checks are disabled during navigation and unreadable/loading previews. Highlighting is invalidated by content and viewport changes and does not wrap authored text or images.
-- Settings reads perform no remote requests. Token connection and status actions are asynchronous, with distinct failure messages.
-- Published-page rechecks use a bounded background queue with retries.
+- Settings reads perform no remote requests. Automatic connection setup is asynchronous, with outage guidance and retry throttling.
+- URL mappings can be added and removed before saving, with accessible controls and validation.
 - CMS 13 uses the Siteimprove v2 SDK; the legacy experience flag is retained in stored settings for compatibility.
 - Patched MailKit minimum 4.16.0 because CMS 13.0 selects an affected transitive version (GHSA-9j88-vvj5-vhgr).
 
@@ -66,7 +66,7 @@ Generated packages are ignored by Git. The CMS 13 validation workflow runs the C
 To repeat the package and consumer checks locally after packing:
 
 ```sh
-python3 tests/verify-package.py artifacts/packages/SiteImprove.Optimizely.Plugin.5.0.0-alpha.8.nupkg --publish-host
+python3 tests/verify-package.py artifacts/packages/SiteImprove.Optimizely.Plugin.5.0.0-alpha.9.nupkg --publish-host
 ```
 
 See the [beta readiness checklist](docs/cms13-beta-readiness.md) for completed checks, remaining release gates and the proposed limited beta scope.

@@ -23,7 +23,7 @@ public class ConnectionTests
         setup.Api.Send = _ => pending.Task;
         var first = setup.Connection.GetTokenAsync(default);
         var second = setup.Connection.GetTokenAsync(default);
-        setup.Repo.SaveSettings(false, new() { ["https://cms.example"] = "https://updated.example" });
+        setup.Repo.SaveSettings(new() { ["https://cms.example"] = "https://updated.example" });
         pending.SetResult("new-token");
         Assert.All(await Task.WhenAll(first, second), token => Assert.Equal("new-token", token));
         Assert.Equal(1, setup.Api.Calls);
@@ -85,6 +85,5 @@ public class ConnectionTests
         public int Calls;
         public Func<CancellationToken, Task<string>> Send = _ => Task.FromResult("new-token");
         public Task<string> RequestTokenAsync(string version, CancellationToken ct) { Interlocked.Increment(ref Calls); return Send(ct); }
-        public Task<bool> RecheckAsync(string url, string token, CancellationToken ct) => throw new NotSupportedException();
     }
 }

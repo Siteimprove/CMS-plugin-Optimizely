@@ -17,10 +17,9 @@ public class AdminTests
         var repo = new StoredSettings();
         var result = Assert.IsType<ViewResult>(Controller(repo).Index());
         var model = Assert.IsType<SettingsViewModel>(result.Model);
-        Assert.True(model.Recheck);
         Assert.Single(model.UrlMap);
         Assert.DoesNotContain(typeof(SettingsViewModel).GetProperties(), p =>
-            new[] { "Token", "ApiUser", "ApiKey", "LatestUI", "PrepublishStatus" }.Contains(p.Name));
+            new[] { "Recheck", "Token", "ApiUser", "ApiKey", "LatestUI", "PrepublishStatus" }.Contains(p.Name));
         Assert.Equal(0, repo.Writes);
         Assert.Equal("old-key", repo.Current.ApiKey);
         var script = Assert.Single(new ClientResourceProvider().GetClientResources());
@@ -33,7 +32,7 @@ public class AdminTests
         var repo = new StoredSettings();
         // The connection can change after an administrator opened the form.
         repo.SetToken("new-token");
-        var result = Assert.IsType<RedirectToActionResult>(Controller(repo).Save(false, Rows(" HTTPS://CMS.EXAMPLE:443/ ", "https://public.example/")));
+        var result = Assert.IsType<RedirectToActionResult>(Controller(repo).Save(Rows(" HTTPS://CMS.EXAMPLE:443/ ", "https://public.example/")));
         Assert.Equal(true, result.RouteValues["saved"]);
         Assert.Equal("new-token", repo.Current.Token);
         Assert.False(repo.Current.Recheck);
@@ -44,11 +43,11 @@ public class AdminTests
     }
 
     [Fact]
-    public void AutomaticConnectionPreservesMappingsAndRecheckChoice()
+    public void AutomaticConnectionPreservesMappingsAndClearsLegacyRechecks()
     {
         var repo = new StoredSettings();
         repo.SetToken("new-token");
-        Assert.True(repo.Current.Recheck);
+        Assert.False(repo.Current.Recheck);
         Assert.Equal("https://public.example", repo.Current.UrlMap["https://cms.example"]);
         Assert.True(repo.Current.LatestUI);
         Assert.Null(repo.Current.ApiKey);
@@ -67,7 +66,7 @@ public class AdminTests
     {
         var repo = new StoredSettings();
         var controller = Controller(repo);
-        var result = Assert.IsType<ViewResult>(controller.Save(false, Rows(source, target)));
+        var result = Assert.IsType<ViewResult>(controller.Save(Rows(source, target)));
         Assert.False(controller.ModelState.IsValid);
         Assert.Equal(0, repo.Writes);
         Assert.True(repo.Current.Recheck);
@@ -83,7 +82,7 @@ public class AdminTests
         var controller = Controller(repo);
         var rows = Rows("https://cms.example", "https://public.example");
         rows.Add(new() { Key = "https://CMS.EXAMPLE:443/", Value = "https://other.example" });
-        Assert.IsType<ViewResult>(controller.Save(false, rows));
+        Assert.IsType<ViewResult>(controller.Save(rows));
         Assert.False(controller.ModelState.IsValid);
         Assert.Equal(0, repo.Writes);
     }
@@ -94,7 +93,7 @@ public class AdminTests
     public void EmptyMappingsCanBeRemoved(bool includeBlankRow)
     {
         var repo = new StoredSettings();
-        Controller(repo).Save(false, includeBlankRow ? Rows(" ", " ") : null);
+        Controller(repo).Save(includeBlankRow ? Rows(" ", " ") : null);
         Assert.Empty(repo.Current.UrlMap);
         Assert.Equal("old-token", repo.Current.Token);
     }

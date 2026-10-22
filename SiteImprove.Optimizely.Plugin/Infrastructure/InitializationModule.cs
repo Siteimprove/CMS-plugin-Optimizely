@@ -21,10 +21,6 @@ namespace SiteImprove.Optimizely.Plugin.Infrastructure
             context.Services.AddTransient<ISiteimproveApiClient, SiteimproveApiClient>();
             context.Services.TryAddSingleton(TimeProvider.System);
             context.Services.AddSingleton<ISiteimproveConnection, SiteimproveConnection>();
-            context.Services.Configure<RecheckQueueOptions>(_ => { });
-            context.Services.AddSingleton<SiteimproveRecheckQueue>();
-            context.Services.AddSingleton<ISiteimproveRecheckQueue>(services => services.GetRequiredService<SiteimproveRecheckQueue>());
-            context.Services.AddHostedService(services => services.GetRequiredService<SiteimproveRecheckQueue>());
 
             context.Services.AddAuthorization(options =>
             {

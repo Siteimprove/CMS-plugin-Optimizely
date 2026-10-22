@@ -36,19 +36,6 @@ public class ApiClientTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => api.RequestTokenAsync("13.0.0", cancelled.Token));
     }
 
-    [Fact]
-    public async Task RecheckReportsFailureAndDoesNotLeakTokenInUrl()
-    {
-        string payload = null;
-        var api = Client(async (request, ct) => {
-            Assert.Equal(Constants.SiteImproveRecheckUrl, request.RequestUri.AbsoluteUri);
-            payload = await request.Content.ReadAsStringAsync(ct);
-            return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
-        });
-        Assert.False(await api.RecheckAsync("https://public.example/page", "token", default));
-        Assert.Contains("\"type\":\"recheck\"", payload);
-    }
-
     [Theory]
     [InlineData("not-json")]
     [InlineData("{\"token\":\"\"}")]

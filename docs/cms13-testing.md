@@ -1,6 +1,6 @@
 # CMS 13 candidate installation testing
 
-Candidate: `5.0.0-alpha.8`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
+Candidate: `5.0.0-alpha.9`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
 
 ## Prepare the environment
 
@@ -32,14 +32,14 @@ dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -
 Copy the package into a temporary local NuGet feed and add that feed to the host solution's development configuration. Keep that configuration outside version control. Install the exact candidate version in the CMS host project:
 
 ```sh
-dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.8
+dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.9
 ```
 
 Restore, build and publish the host into a clean directory. Check that its protected module ZIP and plugin assembly are present. Start CMS and confirm that both admin navigation and the author integration load without console or server errors.
 
-Open Siteimprove from the CMS editor and sign in. Prepublish access follows the signed-in Siteimprove account's subscription and user permissions. No CMS API username/key, token entry or Prepublish activation is required. Connection setup is automatic; existing connection identifiers are reused. CMS settings only control public origin mappings and optional published-page rechecks. The v1 UI cannot be selected, including by an old saved preference.
+Open Siteimprove from the CMS editor and sign in. Prepublish access follows the signed-in Siteimprove account's subscription and user permissions. No CMS API username/key, token entry or Prepublish activation is required. Connection setup is automatic; existing connection identifiers are reused. CMS settings only control public origin mappings. Publishing does not trigger automatic plugin rechecks. The v1 UI cannot be selected, including by an old saved preference.
 
-Verify mappings before enabling rechecks. Mappings accept HTTP(S) origins with optional ports, without paths, queries, fragments or embedded credentials. Invalid or duplicate rows return an error and preserve all submitted values without saving. Clear both fields to remove a mapping.
+Use Add mapping to create multiple rows before saving. Use Remove to delete a row, then save once to apply all changes. Mappings accept HTTP(S) origins with optional ports, without paths, queries, fragments or embedded credentials. Invalid or duplicate rows return an error and preserve all submitted values without saving. Removing a row updates the remaining field indexes before submission.
 
 ## Asynchronous same-origin previews
 
@@ -75,18 +75,13 @@ Compare plugin highlights with actual Siteimprove results. The local browser fix
 
 ## Admin, failure and publishing checks
 
-- Test clean installation and upgrading an installation with existing settings. Confirm connection, recheck preference and URL mappings survive. Old API credentials are unused and cleared on the next settings save; a legacy v1 preference cannot change the SDK.
+- Test clean installation and upgrading an installation with existing settings. Confirm connection and URL mappings survive. Legacy automatic-recheck preferences are ignored and cleared on the next settings write. Old API credentials are unused and cleared on the next settings save; a legacy v1 preference cannot change the SDK.
 - Open the editor with no stored connection. Confirm setup is automatic and concurrent first requests share one request within the process. Change settings during setup and confirm they are retained.
-- Save a blank replacement key and confirm the existing key remains usable.
+- Add several mappings without saving, remove a middle row and save. Reload and confirm that the remaining mappings retain their values. Remove all rows and save to clear the mappings.
 - Verify author/admin access through actual HTTP routes, including denied content and antiforgery rejection.
 - Test Siteimprove sign-out and account/subscription denial in the SDK. No CMS credential field or activation control should appear. Test malformed connection responses, timeout/cancellation, outage throttling and recovery without administrator setup.
-- Disconnect/block Siteimprove temporarily. Editor resource loading must remain usable; asynchronous connection/status requests must finish within the configured timeout.
-- Publish immediately and by schedule with rechecks enabled. Publication must not wait for Siteimprove. Verify accepted requests using logs and the Siteimprove account.
-- Test retries and queue saturation in a controlled environment. A full queue is logged; it does not wait inside publishing.
-- Verify the updated public page is available when rechecked. Configure a delivery delay if necessary; this delay is not proof that a headless frontend is ready.
-- Restart CMS with pending requests. Pending requests are lost in this candidate; request a manual recheck afterwards.
-
-The queue defaults to capacity 256, three attempts and a two-second retry delay. Hosts can configure `RecheckQueueOptions` through the service container. Requests are coalesced while pending for the same page/language. A new publication while a request is processing may enqueue another check.
+- Disconnect/block Siteimprove temporarily. Editor resource loading must remain usable; asynchronous connection requests must finish within the configured timeout.
+- Confirm immediate and scheduled publication do not enqueue or send plugin recheck requests, including when an installation has a legacy enabled preference.
 
 ## Rollback and feedback
 

@@ -1,6 +1,6 @@
 # CMS 13 beta readiness
 
-Checkpoint: 22 October 2026. Candidate: `5.0.0-alpha.8`. This remains an internal installation-test candidate. It is not a beta or GA release.
+Checkpoint: 22 October 2026. Candidate: `5.0.0-alpha.9`. This remains an internal installation-test candidate. It is not a beta or GA release.
 
 ## Proposed initial beta scope
 
@@ -8,7 +8,7 @@ Checkpoint: 22 October 2026. Candidate: `5.0.0-alpha.8`. This remains an interna
 - Visual Builder page checks, element/text highlighting, correction and rechecking. Checks are advisory; they do not block publication.
 - All Properties guidance when the preview is unavailable.
 - Cross-origin draft checking/highlighting, standalone blocks/sections, custom asynchronous frontends and multiple applications are excluded until separately validated.
-- Automatic and scheduled published-page rechecks remain outside the initial beta acceptance scope until tested against a public staging URL. Keep the setting off during this beta; the implementation is process-local and does not guarantee delivery across restarts.
+- Automatic rechecks after publishing are removed. Publication has no plugin event handler, background queue or recheck API call.
 
 The compatibility matrix must name the actual CMS, .NET, hosting and browser versions before invitations are sent. The NuGet dependency range is not evidence that every CMS 13 release has been tested.
 
@@ -16,7 +16,7 @@ The compatibility matrix must name the actual CMS, .NET, hosting and browser ver
 
 | Area | Evidence | Limit |
 | --- | --- | --- |
-| Automated regression suite | 41 C# checks, 18 JavaScript unit checks and 12 Chromium fixtures pass | Simulated CMS/SDK context in fixtures |
+| Automated regression suite | 35 C# checks, 18 JavaScript unit checks and 15 Chromium fixtures pass | Simulated CMS/SDK context in fixtures |
 | Real CMS installation | Alloy 2.0.1 with CMS 13.0.0, SQL Server 2022 and local ASP.NET Identity | Opti ID, Graph and Content Manager are not configured |
 | Real Siteimprove workflow | Initial image check/fix/recheck passed; alpha.8 ran a new completed draft check with no CMS API credentials and retained results after automatic setup | Image correction checkpoint used alpha.3/alpha.4; alpha.8 returned 5 accessibility and 10 SEO issue types |
 | Real text highlights | Alpha.6 scanned the Swedish page variant; the SDK highlighted `publicerad` at the word's exact DOM range bounds without changing the paragraph HTML | One real text-offset example; nested-child cases also have fixtures |
@@ -34,7 +34,7 @@ The [earlier local validation record](cms13-local-validation.md) describes the i
 - Legacy credentials/status/activation controls are removed; SDK access follows the signed-in subscription and permissions. Obsolete DDS credentials are cleared on writes and legacy UI preferences cannot load v1.
 - Selecting the same page after a temporary context-request failure now retries, matching the editor guidance.
 - The private CMS host was moved to Microsoft's checksum-verified .NET/ASP.NET Core 10.0.13 runtimes. Temporary diagnostic code was removed from its built assembly.
-- URL mappings have accessible names, HTTP(S) origin validation, duplicate detection, preserved values on errors and save confirmation.
+- URL mappings have accessible names, HTTP(S) origin validation, duplicate detection, preserved values on errors and save confirmation. Add and Remove work before saving; row indexes and error references stay consistent after removal.
 - The cryptography dependency and test XML dependency use Microsoft's patched `10.0.13` packages. The refreshed plugin dependency report still lists ImageSharp 3.1.12 advisories. No advisory warnings are suppressed.
 - GitHub Actions validates tests and candidate packaging with read-only repository permissions and no publishing credentials. Dependency reports are evidence for release review, not an automatic release approval.
 
@@ -53,4 +53,4 @@ References: [CMS 13 installation requirements](https://docs.optimizely.com/cms-1
 
 Run the [acceptance script](cms13-testing.md) with a small named tester group on representative, supported environments. Record candidate versions and sanitized reproduction steps. Close blockers involving incorrect draft capture, incorrect highlights, lost settings, unauthorized access or disruption to editing/publication. Recheck affected acceptance steps after fixes.
 
-GA additionally requires a signed-off compatibility matrix, successful installation/migration/rollback on the supported hosting configurations, browser and author/admin UX coverage, resolved material findings and documented support/known limitations. If automatic rechecks are included, verify immediate/scheduled publication, retry limits, queue saturation, delivery timing and restart behavior against real Siteimprove requests. Cross-origin checking may remain excluded from GA if the support scope says so explicitly.
+GA additionally requires a signed-off compatibility matrix, successful installation/migration/rollback on the supported hosting configurations, browser and author/admin UX coverage, resolved material findings and documented support/known limitations. Cross-origin checking may remain excluded from GA if the support scope says so explicitly.

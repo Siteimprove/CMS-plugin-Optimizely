@@ -11,6 +11,7 @@ namespace SiteImprove.Optimizely.Plugin.Models
 
         public string Token { get; set; }
 
+        // Retained only for existing DDS stores. Publication no longer triggers plugin checks.
         public bool Recheck { get; set; }
 
         // Retained for existing DDS stores. These fields no longer control the SDK or access.
