@@ -1,13 +1,10 @@
 using System;
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using SiteImprove.Optimizely.Plugin.Models;
 
 namespace SiteImprove.Optimizely.Plugin.Services;
 
@@ -32,37 +29,6 @@ public class SiteimproveApiClient(IHttpClientFactory clients, ILogger<Siteimprov
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { return null; }
         catch (HttpRequestException) { logger.LogWarning("Siteimprove token request failed."); return null; }
         catch (JsonException) { logger.LogWarning("Siteimprove returned an invalid token response."); return null; }
-    }
-
-    public Task<ContentCheckStatus> GetPrepublishStatusAsync(string apiUser, string apiKey, CancellationToken cancellationToken) =>
-        ContentCheckingAsync(HttpMethod.Get, apiUser, apiKey, cancellationToken);
-
-    public Task<ContentCheckStatus> EnablePrepublishCheckAsync(string apiUser, string apiKey, CancellationToken cancellationToken) =>
-        ContentCheckingAsync(HttpMethod.Post, apiUser, apiKey, cancellationToken);
-
-    private async Task<ContentCheckStatus> ContentCheckingAsync(HttpMethod method, string apiUser, string apiKey, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(apiUser) || string.IsNullOrWhiteSpace(apiKey)) return ContentCheckStatus.Unconfigured;
-        using var request = new HttpRequestMessage(method, Constants.SiteImproveApiUrl + "/settings/content_checking");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{apiUser}:{apiKey}")));
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        try
-        {
-            using var client = clients.CreateClient(ClientName);
-            using var response = await client.SendAsync(request, cancellationToken);
-            if (response.StatusCode == HttpStatusCode.Unauthorized) return ContentCheckStatus.InvalidCredentials;
-            if (response.StatusCode == HttpStatusCode.Forbidden) return ContentCheckStatus.AccessDenied;
-            if (!response.IsSuccessStatusCode) return ContentCheckStatus.Unavailable;
-            if (method == HttpMethod.Post) return ContentCheckStatus.Enabled;
-            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-            if (json.RootElement.ValueKind != JsonValueKind.Object || !json.RootElement.TryGetProperty("is_ready", out var ready) ||
-                (ready.ValueKind != JsonValueKind.True && ready.ValueKind != JsonValueKind.False)) return ContentCheckStatus.Unavailable;
-            return ready.GetBoolean() ? ContentCheckStatus.Enabled : ContentCheckStatus.Disabled;
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { return ContentCheckStatus.Unavailable; }
-        catch (HttpRequestException) { logger.LogWarning("Siteimprove content-check request failed."); return ContentCheckStatus.Unavailable; }
-        catch (JsonException) { logger.LogWarning("Siteimprove returned an invalid content-check response."); return ContentCheckStatus.Unavailable; }
     }
 
     public async Task<bool> RecheckAsync(string url, string token, CancellationToken cancellationToken)

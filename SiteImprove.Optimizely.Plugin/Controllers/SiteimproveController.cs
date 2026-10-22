@@ -5,7 +5,7 @@ using EPiServer.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SiteImprove.Optimizely.Plugin.Helper;
-using SiteImprove.Optimizely.Plugin.Repositories;
+using SiteImprove.Optimizely.Plugin.Services;
 
 namespace SiteImprove.Optimizely.Plugin.Controllers
 {
@@ -13,16 +13,16 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class SiteimproveController : Controller
     {
-        private readonly ISettingsRepository _settingsRepo;
+        private readonly ISiteimproveConnection _connection;
         private readonly ISiteimproveHelper _siteimproveHelper;
         private readonly IContentLoader _contentLoader;
         private readonly IContentAccessEvaluator _accessEvaluator;
         private readonly IAuthorizationService _authorization;
 
-        public SiteimproveController(ISettingsRepository settingsRepo, ISiteimproveHelper siteimproveHelper,
+        public SiteimproveController(ISiteimproveConnection connection, ISiteimproveHelper siteimproveHelper,
             IContentLoader contentLoader, IContentAccessEvaluator accessEvaluator, IAuthorizationService authorization)
         {
-            _settingsRepo = settingsRepo;
+            _connection = connection;
             _siteimproveHelper = siteimproveHelper;
             _contentLoader = contentLoader;
             _accessEvaluator = accessEvaluator;
@@ -38,10 +38,10 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
         }
 
         [HttpGet]
-        public ActionResult Token()
+        public async System.Threading.Tasks.Task<ActionResult> Token()
         {
-            var token = _settingsRepo.GetToken();
-            return string.IsNullOrWhiteSpace(token) ? StatusCode(503, new { status = "not-connected" }) : Json(token);
+            var token = await _connection.GetTokenAsync(HttpContext.RequestAborted);
+            return string.IsNullOrWhiteSpace(token) ? StatusCode(503, new { status = "connection-unavailable" }) : Json(token);
         }
 
         [HttpGet]

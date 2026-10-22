@@ -59,7 +59,7 @@ define([
                 if (this.disposed || revision !== this.contextRevision) return;
                 var page = responses[0];
                 this.token = responses[1];
-                if (!this.token) { this.setStatus("not-connected", "Ask an administrator to connect Siteimprove in Settings."); return; }
+                if (!this.token) { this.setStatus("connection-unavailable", "Siteimprove is temporarily unavailable. Try again in a minute."); return; }
                 this.publicUrl = page.url || null;
                 this.expectedPreviewUrl = page.previewUrl || null;
                 this.si().push(["input", this.publicUrl, this.token]);
@@ -72,7 +72,7 @@ define([
                 if (this.disposed || revision !== this.contextRevision) return;
                 this.contextKey = null;
                 this.setStatus("unavailable", error && error.response && error.response.status === 503
-                    ? "Ask an administrator to connect Siteimprove in Settings."
+                    ? "Siteimprove is temporarily unavailable. Try again in a minute."
                     : "Siteimprove could not load this page's context. Select the page again to retry.");
             }.bind(this));
         },

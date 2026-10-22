@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {chromium} = require('playwright');
 let server, crossServer, browser, origin, crossOrigin;
-const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.7/ClientResources');
+const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.8/ClientResources');
 function handler(req,res) {
     const url = new URL(req.url,'http://localhost');
     res.setHeader('Content-Type','text/html; charset=utf-8');
@@ -187,6 +187,7 @@ test('selecting the same page retries context after a temporary connection failu
         await p.goto(origin);
         await p.waitForFunction(()=>plugin.previewStatus==='unavailable');
         assert.equal(await p.evaluate(()=>plugin.checkAvailable),false);
+        assert.equal(await p.getByRole('status').innerText(),'Siteimprove is temporarily unavailable. Try again in a minute.');
         await p.unroute('**/api/Token');
         await p.evaluate(()=>plugin.contextChange({id:'1_2',language:'en',capabilities:{isPage:true}}));
         await p.waitForFunction(()=>plugin.checkAvailable===true);

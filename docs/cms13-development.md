@@ -20,7 +20,7 @@ These checks do not establish CMS startup, Visual Builder compatibility, success
 
 The `siteimprove:admin` policy retains Administrators, WebAdmins, CmsAdmins and SiteimproveAdmins. The separate `siteimprove:use` policy also permits CmsEditors, WebEditors and SiteimproveEditors. Page URL lookup checks content read access. Actual Opti ID group mappings and direct endpoint access require live tests.
 
-Token rotation is POST-only and preserves settings. Admin submissions validate antiforgery tokens. Existing API keys are not rendered back to the browser; leaving the replacement field blank retains the stored key. Existing DDS credential storage remains unchanged.
+CMS settings require the admin policy and antiforgery validation. SDK v2 sign-in handles subscription and user permissions; legacy API activation/status calls and credential inputs have been removed. An internal connection identifier is provisioned asynchronously on demand, reused, and never shown in settings. A process-wide gate coalesces initial requests and throttles failures for one minute. Settings reads and resource discovery remain free of remote requests. Saving settings clears unused legacy API fields and normalizes the old UI preference; the resource provider unconditionally loads v2. DDS fields remain only for schema compatibility.
 
 ## Remaining work
 
@@ -32,7 +32,7 @@ Token rotation is POST-only and preserves settings. Admin submissions validate a
 - Test language-specific domains, multiple applications and custom headless public routes.
 - Validate the bounded background queue against CMS publication events, scheduled publishing and frontend delivery delays. Add durable persistence before promising restart-safe delivery.
 - The home page now uses the same page-recheck path as other pages; legacy whole-site recrawl is not submitted.
-- Add connection diagnostics, accessible UI feedback and a protected credential-storage migration where appropriate.
+- Test account/subscription denial and sign-out with the hosted SDK, including guidance for unavailable previews.
 - Establish a tested compatibility matrix before proposing a release.
 
 ## Test environment
@@ -82,6 +82,15 @@ The candidate remains experimental. Browser fixtures use real Chromium with simu
 
 The candidate passed 29 C# tests, 17 JavaScript tests and five Chromium fixture tests. The C# tests include the CMS 13 Visual Builder experience/page type contract, API/status failures and background queue behaviour. The candidate package was restored and published in a clean ASP.NET host fixture; the updated protected module and assembly were present in its output. This fixture did not initialize CMS services or connect to a CMS database.
 
-Clean-host restore reported ImageSharp advisories for the version selected by CMS 13.0.0 (`SixLabors.ImageSharp` 3.1.12). The inspected CMS packages constrain it to `[3.1.12,4.0.0)`. Several current advisories list 4.1.2 as patched, outside that range. Resolve these warnings using an Optimizely-supported platform/package combination before external beta deployment; do not override the major version or suppress the warnings to claim readiness. This dependency check is not a finding that the Siteimprove code itself reaches the affected image-processing paths.
+Clean-host restore reported ImageSharp advisories for the version selected by CMS 13.0.0 (`SixLabors.ImageSharp` 3.1.12). The inspected CMS packages constrain it to `[3.1.12,4.0.0)`. The initial check identified 4.1.2 as patched outside that range. A refreshed review on 22 October identified the vendor’s 3.2.0 security backport within the CMS range. Direct references to 3.2.0 require a Six Labors build-time license key; the supplied Optimizely license is not evidence of that entitlement. Validate a licensed 3.2.0 platform combination and refresh the host audit before external beta. Do not suppress warnings or bypass license enforcement. This dependency check is not a finding that the Siteimprove code itself reaches the affected image-processing paths.
 
 References: [TIFF T4 advisory](https://github.com/advisories/GHSA-j9gm-c75j-xc9q), [histogram equalization advisory](https://github.com/advisories/GHSA-j3p4-wp97-rph4), [TIFF T6 advisory](https://github.com/advisories/GHSA-jjfr-hcj7-qf5w).
+
+
+### Settings simplification in 5.0.0-alpha.8
+
+[Siteimprove's current security FAQ](https://help.siteimprove.com/support/solutions/articles/80000448234-cms-plugin-security-faq) confirms that manual API credentials/tokens are unnecessary and Prepublish/Live access follows subscription and user permissions. The real CMS workflow already succeeded with empty legacy API inputs. Alpha.8 removes those controls and the misleading API status/activation path, while retaining the internal identifier required by the SDK input and published-recheck integration. There is no v1 resource fallback.
+
+The settings form now rejects invalid, incomplete and duplicate origin mappings with visible, field-associated errors and preserves submissions on failure. Saving merges with the latest connection. Existing DDS fields are retained for compatibility but are no longer accepted from the form; obsolete credentials are cleared on writes.
+
+The dependency follow-up uses the vendor's [3.2.0 release](https://github.com/SixLabors/ImageSharp/releases/tag/v3.2.0), [T4 advisory](https://github.com/SixLabors/ImageSharp/security/advisories/GHSA-j9gm-c75j-xc9q) and [v3 build-time licensing documentation](https://docs-v3.sixlabors.com/articles/imagesharp/index.html). This corrects the earlier assumption that only an incompatible major-version upgrade was available. An isolated 3.2.0 build confirmed that the current environment lacks the required Six Labors key. Its NuGet audit still reported the five advisories, so reconcile the feed data with the vendor’s updated ranges before claiming the dependency gate is clear. No dependency override or warning suppression was added.

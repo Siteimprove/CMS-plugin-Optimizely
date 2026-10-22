@@ -1,188 +1,55 @@
-@using EPiServer.ServiceLocation
-@using SiteImprove.Optimizely.Plugin
-@using SiteImprove.Optimizely.Plugin.Models
-
 @model SiteImprove.Optimizely.Plugin.Models.SettingsViewModel
-
 @{
     Layout = "_Layout";
 }
-
-<div class="content-area-container">
-<div class="epi-uif-layout-container">
-<div class="epi-uif-workspace-container">
-<div class="epi-uif-workspace">
-    <div class="epi-uif-grid mdc-layout-grid mdc-layout-grid--align-left">
-        <div class="mdc-layout-grid__inner">
-            <div class="epi-uif-grid-cell mdc-layout-grid__cell">
-                <div class="detail-view">
-                    <div class="epi-main-header">
-                        <h2 class="epi-uif-typography mdc-typography--headline4">SiteImprove</h2>
-                        <a class="epi-uif-anchor mdc-typography--body1" target="_blank" href="https://siteimprove.com/en/core-platform/integrations/cms-plugin/optimizely/" title="Help"><svg aria-hidden="true" class="epi-uif-icon" height="24" role="presentation" viewBox="0 0 24 24" width="24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"></path></svg></a>
-                    </div>
-                    <p>
-                        <span class="epi-uif-typography mdc-typography--subtitle2">Pre-publish configuration.</span>
-                    </p>
-                    <div class="edit-view">
-                        <div class="edit-view__content" style="padding-left: 0;padding-right: 0;padding-bottom: 0;">
-                            <div class="epi-uif-card edit-view__information mdc-card mdc-card--outlined" tabindex="0" style="min-height:auto;width: auto;">
-                                <div class="epi-uif-card-content-area">
-                                    <div class="edit-view__information__card">
-                                        <div>
-                                            <div class="edit-view__information__card__detail"><span>Connection: </span>@(string.IsNullOrWhiteSpace(Model.Token) ? "Not connected. Request a token to connect Siteimprove." : "Connected")</div>
-                                        </div>
-                                        <form action="@Model.PluginUrl/RotateToken" method="post">
-                                            @Html.AntiForgeryToken()
-
-                                            <button type="submit" class="mdc-ripple-upgraded epi-uif-text-button mdc-button mdc-button--unelevated"><div class="mdc-button__ripple"></div><span class="mdc-button__label">@(string.IsNullOrWhiteSpace(Model.Token) ? "Connect Siteimprove" : "Request new token")</span></button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="edit-view__content" style="padding-left: 0;padding-right: 0;">
-                            <div class="epi-uif-card edit-view__information mdc-card mdc-card--outlined" tabindex="0" style="min-height:auto;width: auto;">
-                                <div class="epi-uif-card-content-area">
-                                    <div class="edit-view__information__card">
-                                        <div>
-                                            <div class="edit-view__information__card__detail"><span>Pre-publish check: </span>@Model.PrepublishStatus.Describe()</div>
-                                        </div>
-
-                                        @if (Model.PrepublishStatus == ContentCheckStatus.Disabled)
-                                        {
-                                            <form action="@Model.PluginUrl/EnablePrepublishCheck" method="post">
-                                            @Html.AntiForgeryToken()
-                                                @Html.Hidden("enablePrepublishCheck", true)
-                                                <button type="submit" class="mdc-ripple-upgraded epi-uif-text-button mdc-button mdc-button--unelevated"><div class="mdc-button__ripple"></div><span class="mdc-button__label">Enable pre-publish check</span></button>
-                                            </form>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <p><a href="@Model.PluginUrl">Retry status check</a></p>
-                        @if (Model.OperationError.HasValue)
-                        {
-                            <p role="alert">The request could not be completed. @Model.OperationError.Value.Describe()</p>
-                        }
-                    </div>
-                    <div class="edit-view mdc-card--outlined edit-view__content">
-                        <div>
-                            <strong>Settings</strong>
-                        </div>
-                        <form action="@Model.PluginUrl/Save" method="post">
-                                            @Html.AntiForgeryToken()
-                            <div class="epi-uif-grid-row mdc-layout-grid__inner">
-                                <div class="epi-uif-grid-cell mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
-                                    <div class="control">
-                                        <label class="mdc-ripple-upgraded epi-uif-text-field textfield-wide mdc-text-field mdc-text-field--upgraded mdc-text-field--outlined" aria-labelledby="api-user-label">
-                                            <span class="mdc-text-field__ripple"></span>
-                                            @Html.TextBoxFor(model => model.ApiUser, new { @class = "mdc-text-field__input", aria_labelledby = "api-user-label", autocomplete = "username" })
-                                            <div class="mdc-notched-outline mdc-notched-outline--upgraded mdc-notched-outline--notched" notch="46.5">
-                                                <div class="mdc-notched-outline__leading"></div>
-                                                <div class="mdc-notched-outline__notch" style="width: 87.5px;">
-                                                    <span id="api-user-label" class="mdc-floating-label mdc-floating-label--float-above" style="">API Username</span>
-                                                </div>
-                                                <div class="mdc-notched-outline__trailing"></div>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="epi-uif-grid-row mdc-layout-grid__inner">
-                                <div class="epi-uif-grid-cell mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
-                                    <div class="control">
-                                        <label class="mdc-ripple-upgraded epi-uif-text-field textfield-wide mdc-text-field mdc-text-field--upgraded mdc-text-field--outlined" aria-labelledby="api-key-label">
-                                            <span class="mdc-text-field__ripple"></span>
-                                            @Html.PasswordFor(model => model.ApiKey, new { @class = "mdc-text-field__input", autocomplete = "new-password", aria_labelledby = "api-key-label", aria_describedby = "api-key-help", placeholder = "Leave blank to keep existing key" })
-                                            <div class="mdc-notched-outline mdc-notched-outline--upgraded mdc-notched-outline--notched" notch="46.5">
-                                                <div class="mdc-notched-outline__leading"></div>
-                                                <div class="mdc-notched-outline__notch" style="width: 50.5px;">
-                                                    <span id="api-key-label" class="mdc-floating-label mdc-floating-label--float-above" style="">API Key</span>
-                                                </div>
-                                                <div class="mdc-notched-outline__trailing"></div>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <p id="api-key-help">Leave the API key blank to keep the stored key. Token connection and API credentials are configured separately.</p>
-                            <div class="epi-uif-grid-row mdc-layout-grid__inner">
-                                <div class="epi-uif-grid-cell mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
-                                    <div class="control">
-                                        <div class="epi-uif-data-table__table mdc-data-table" header="Host Names">
-                                            <table class="epi-uif-data-table-content mdc-data-table__table">
-                                                <thead class="epi-uif-data-table-header-row rmwc-data-table__head">
-                                                    <tr class="rmwc-data-table__row mdc-data-table__header-row">
-                                                        <th class="epi-uif-data-table-column-header-cell rmwc-data-table__cell mdc-data-table__header-cell" role="columnheader" scope="col">Site Url</th>
-                                                        <th class="epi-uif-data-table-column-header-cell rmwc-data-table__cell mdc-data-table__header-cell" role="columnheader" scope="col">External Url</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="epi-uif-data-table-body mdc-data-table__content">
-                                                    @if (Model.UrlMap != null)
-                                                    {
-                                                        @foreach (var (pair, index) in Model.UrlMap.Select((pair, index) => (pair, index)))
-                                                        {
-                                                            <tr class="epi-uif-data-table-row rmwc-data-table__row mdc-data-table__row">
-                                                                <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + index + "].key", pair.Key, new { style="width:100%", aria_label = $"CMS site URL, row {index + 1}" })</td>
-                                                                <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + index + "].value", pair.Value, new { style = "width:100%", aria_label = $"External site URL, row {index + 1}" })</td>
-                                                            </tr>
-                                                        }
-                                                    }
-                                                    <tr class="epi-uif-data-table-row rmwc-data-table__row mdc-data-table__row">
-                                                        <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + (Model.UrlMap?.Count() ?? 0) + "].key", "", new { style = "width:100%", aria_label = "New CMS site URL" })</td>
-                                                        <td class="epi-uif-data-table-cell mdc-data-table__cell rmwc-data-table__cell">@Html.TextBox("urlMap[" + (Model.UrlMap?.Count() ?? 0) + "].value", "", new { style = "width:100%", aria_label = "New external site URL" })</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                    <div style=" padding-left: 9px;">
-                                        <div class="epi-uif-checkbox mdc-form-field">
-                                            <span class="epi-uif-typography mdc-typography--body1" style=" color: rgba(8, 7, 54, 0.6); ">Enter full site URLs including scheme (<i>https://www.example.com</i>)</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="epi-uif-grid-row mdc-layout-grid__inner">
-                                <div class="epi-uif-grid-cell mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
-                                    <div class="control">
-                                        <div class="epi-uif-checkbox mdc-form-field">
-                                            <div class="mdc-ripple-upgraded--unbounded mdc-ripple-upgraded mdc-checkbox--upgraded mdc-checkbox mdc-checkbox--selected" style="--mdc-ripple-fg-size:22px; --mdc-ripple-fg-scale:1.81754; --mdc-ripple-left:9px; --mdc-ripple-top:9px;">
-                                                @Html.CheckBoxFor(model => model.Recheck, new { @class = "mdc-checkbox__native-control" })
-                                                <div class="mdc-checkbox__background">
-                                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24"><path class="mdc-checkbox__checkmark-path" fill="none" stroke="white" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path></svg>
-                                                    <div class="mdc-checkbox__mixedmark"></div>
-                                                </div>
-                                                <div class="mdc-checkbox__ripple"></div>
-                                            </div>
-                                            @Html.LabelFor(model => model.Recheck, "Recheck pages after publishing")
-                                        </div>
-                                    </div>
-                                    <div style=" padding-left: 9px;">
-                                        <div class="epi-uif-checkbox mdc-form-field">
-                                            <span class="epi-uif-typography mdc-typography--body1" style=" color: rgba(8, 7, 54, 0.6); ">When enabled, publishing a page queues a recheck, including scheduled publishing. Requests are retried if Siteimprove is unavailable. Pending requests are lost if the CMS restarts.</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="epi-uif-grid-row mdc-layout-grid__inner">
-                                <div class="epi-uif-grid-cell mdc-layout-grid__cell">
-                                    <div class="form-bottom">
-                                        <button type="submit" class="mdc-ripple-upgraded epi-uif-text-button mdc-button mdc-button--unelevated"><div class="mdc-button__ripple"></div><span class="mdc-button__label">Save</span></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="edit-view">
-                        <div class="edit-view__content" style="text-align: end;">Version @Model.PluginVersion</div>
-                    </div>
-                </div>
-            </div>
+<main class="siteimprove-settings">
+    <h1>Siteimprove</h1>
+    <p>Sign in to Siteimprove from the editor to view page insights and run Prepublish checks. Access depends on your Siteimprove subscription and user permissions.</p>
+    <p>This integration uses the current Siteimprove experience. Prepublish checks and highlighting require a preview on the same origin as the CMS.</p>
+    <p><a href="https://help.siteimprove.com/support/solutions/articles/80000448234-cms-plugin-security-faq" target="_blank" rel="noopener noreferrer">About Siteimprove sign-in and access</a></p>
+    @if (Model.Saved)
+    {
+        <p role="status" class="settings-saved">Settings saved.</p>
+    }
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div role="alert" class="settings-errors">
+            <h2>Check the URL mappings</h2>
+            <p>Your changes have not been saved. Correct the highlighted fields and try again.</p>
+            @Html.ValidationSummary(false)
         </div>
-    </div>
-</div>
-</div>
-</div>
-</div>
+    }
+    <form action="@Model.PluginUrl/Save" method="post">
+        @Html.AntiForgeryToken()
+        <h2>Public URL mappings</h2>
+        <p id="mapping-help">Optional: map a CMS site's origin to its public origin when they differ. Include http:// or https:// and a port if needed. Page paths stay the same. Leave both fields empty to remove a mapping.</p>
+        <table class="settings-mappings">
+            <thead><tr><th scope="col">CMS origin</th><th scope="col">Public origin</th></tr></thead>
+            <tbody>
+                @for (var i = 0; i <= Model.UrlMap.Count; i++)
+                {
+                    var row = i < Model.UrlMap.Count ? Model.UrlMap[i] : new SiteImprove.Optimizely.Plugin.Models.UrlMapping();
+                    <tr>
+                        <td>
+                            @Html.TextBox($"urlMap[{i}].Key", row.Key, new { aria_label = $"CMS origin, row {i + 1}", aria_invalid = ViewData.ModelState[$"urlMap[{i}].Key"]?.Errors.Count > 0 ? "true" : "false", aria_describedby = $"mapping-help mapping-source-error-{i}", type = "url", placeholder = "https://cms.example.com" })
+                            @Html.ValidationMessage($"urlMap[{i}].Key", null, new { id = $"mapping-source-error-{i}" })
+                        </td>
+                        <td>
+                            @Html.TextBox($"urlMap[{i}].Value", row.Value, new { aria_label = $"Public origin, row {i + 1}", aria_invalid = ViewData.ModelState[$"urlMap[{i}].Value"]?.Errors.Count > 0 ? "true" : "false", aria_describedby = $"mapping-help mapping-target-error-{i}", type = "url", placeholder = "https://www.example.com" })
+                            @Html.ValidationMessage($"urlMap[{i}].Value", null, new { id = $"mapping-target-error-{i}" })
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <p>Save to add another mapping row.</p>
+        <h2>Published pages</h2>
+        <p class="settings-checkbox">
+            @Html.CheckBoxFor(model => model.Recheck, new { aria_describedby = "recheck-help" })
+            @Html.LabelFor(model => model.Recheck, "Recheck pages after publishing")
+        </p>
+        <p id="recheck-help">When enabled, publishing a page queues a recheck, including scheduled publishing. Requests are retried if Siteimprove is unavailable. Pending requests are lost if the CMS restarts.</p>
+        <button type="submit" class="settings-save">Save settings</button>
+    </form>
+    <p class="settings-version">Version @Model.PluginVersion</p>
+</main>

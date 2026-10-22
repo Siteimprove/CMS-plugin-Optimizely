@@ -5,73 +5,60 @@ using EPiServer.Data.Dynamic;
 using EPiServer.ServiceLocation;
 using SiteImprove.Optimizely.Plugin.Models;
 
-namespace SiteImprove.Optimizely.Plugin.Repositories
+namespace SiteImprove.Optimizely.Plugin.Repositories;
+
+[ServiceConfiguration(typeof(ISettingsRepository))]
+public class SettingsRepository : ISettingsRepository
 {
-    [ServiceConfiguration(typeof(ISettingsRepository))]
-    public class SettingsRepository : ISettingsRepository
+    private static readonly object Sync = new();
+    private static DynamicDataStore SettingStore => typeof(Settings).GetOrCreateStore();
+
+    public string GetToken() => GetSetting().Token;
+
+    public void SetToken(string token)
     {
-        private static readonly object _lock = new object();
-
-        private static DynamicDataStore SettingStore
+        if (string.IsNullOrWhiteSpace(token)) throw new System.ArgumentException("A token is required.", nameof(token));
+        lock (Sync)
         {
-            get
-            {
-                return typeof(Settings).GetOrCreateStore();
-            }
+            var settings = GetSetting();
+            settings.Token = token;
+            SaveCurrent(settings);
         }
+    }
 
-        public string GetToken() => GetSetting().Token;
-
-        public void SetToken(string token)
+    public void SaveSettings(bool recheck, Dictionary<string, string> urlMap)
+    {
+        lock (Sync)
         {
-            if (string.IsNullOrWhiteSpace(token)) throw new System.ArgumentException("A token is required.", nameof(token));
-            lock (_lock)
-            {
-                var settings = GetSetting();
-                SaveToken(token, settings.Recheck, settings.LatestUI, settings.ApiUser, settings.ApiKey, settings.UrlMap);
-            }
+            // Merge editable fields with the latest connection rather than a stale form snapshot.
+            var settings = GetSetting();
+            settings.Recheck = recheck;
+            settings.UrlMap = urlMap ?? new Dictionary<string, string>();
+            SaveCurrent(settings);
         }
+    }
 
-        public void SaveSettings(bool recheck, string apiUser, string apiKey, Dictionary<string, string> urlMap)
+    private void SaveCurrent(Settings settings)
+    {
+        settings.LatestUI = true;
+        settings.ApiUser = null;
+        settings.ApiKey = null;
+        Persist(settings);
+    }
+
+    public Settings GetSetting()
+    {
+        lock (Sync)
         {
-            lock (_lock)
-            {
-                // Merge submitted fields with the current token and replacement-only API key.
-                var settings = GetSetting();
-                SaveToken(settings.Token, recheck, settings.LatestUI, apiUser,
-                    string.IsNullOrWhiteSpace(apiKey) ? settings.ApiKey : apiKey, urlMap);
-            }
+            // Reading settings must not contact Siteimprove or write a new store row.
+            return LoadSettings() ?? new Settings { LatestUI = true, UrlMap = new Dictionary<string, string>() };
         }
+    }
 
-        public void SaveToken(string token, bool recheck = false, bool latestUI = true, string apiUser = null, string apiKey = null, Dictionary<string, string> urlMap = null)
-        {
-            lock (_lock)
-            {
-                var current = SettingStore.LoadAll<Settings>().ToArray().FirstOrDefault();
-                if (current != null)
-                {
-                    current.Token = token;
-                    current.Recheck = recheck;
-                    current.LatestUI = latestUI;
-                    current.ApiUser = apiUser;
-                    current.ApiKey = apiKey;
-                    current.UrlMap = urlMap;
-                    SettingStore.Save(current, current.GetIdentity());
-                    return;
-                }
-
-                SettingStore.Save(new Settings { Token = token, Recheck = recheck, LatestUI = latestUI, ApiUser = apiUser, ApiKey = apiKey, UrlMap = urlMap });
-            }
-        }
-
-        public Settings GetSetting()
-        {
-            lock (_lock)
-            {
-                // Reading settings must not contact Siteimprove or write a new store row.
-                return SettingStore.LoadAll<Settings>().FirstOrDefault()
-                    ?? new Settings { LatestUI = true, UrlMap = new Dictionary<string, string>() };
-            }
-        }
+    protected virtual Settings LoadSettings() => SettingStore.LoadAll<Settings>().FirstOrDefault();
+    protected virtual void Persist(Settings settings)
+    {
+        if (settings.Id != null) SettingStore.Save(settings, settings.GetIdentity());
+        else SettingStore.Save(settings);
     }
 }

@@ -1,117 +1,131 @@
+using System.Reflection;
 using EPiServer.Core;
+using EPiServer.Framework.Modules;
 using Microsoft.AspNetCore.Mvc;
 using SiteImprove.Optimizely.Plugin.Controllers;
 using SiteImprove.Optimizely.Plugin.Helper;
+using SiteImprove.Optimizely.Plugin.Infrastructure;
 using SiteImprove.Optimizely.Plugin.Models;
 using SiteImprove.Optimizely.Plugin.Repositories;
 using Xunit;
-using Microsoft.AspNetCore.Http;
-using SiteImprove.Optimizely.Plugin.Services;
 
 public class AdminTests
 {
     [Fact]
-    public async Task TokenRotationPreservesConfiguration()
+    public void OldCredentialsAndUiSelectionDoNotReachTheSettingsView()
     {
-        var repo = new MemorySettings();
-        var controller = Controller(repo);
-        Assert.IsType<RedirectToActionResult>(await controller.RotateToken());
-        Assert.Equal("new-token", repo.Settings.Token);
-        Assert.True(repo.Settings.Recheck);
-        Assert.Equal("key", repo.Settings.ApiKey);
-        Assert.Equal("user", repo.Settings.ApiUser);
-        Assert.Equal("https://public.example", repo.Settings.UrlMap["https://cms.example"]);
+        var repo = new StoredSettings();
+        var result = Assert.IsType<ViewResult>(Controller(repo).Index());
+        var model = Assert.IsType<SettingsViewModel>(result.Model);
+        Assert.True(model.Recheck);
+        Assert.Single(model.UrlMap);
+        Assert.DoesNotContain(typeof(SettingsViewModel).GetProperties(), p =>
+            new[] { "Token", "ApiUser", "ApiKey", "LatestUI", "PrepublishStatus" }.Contains(p.Name));
+        Assert.Equal(0, repo.Writes);
+        Assert.Equal("old-key", repo.Current.ApiKey);
+        var script = Assert.Single(new ClientResourceProvider().GetClientResources());
+        Assert.Equal("https://cdn.siteimprove.net/cms/overlay-v2.js", script.Path);
     }
 
     [Fact]
-    public async Task FailedTokenRotationDoesNotWriteSettings()
+    public void SavingMigratesLegacyConfigurationAndPreservesTheConnection()
     {
-        var repo = new MemorySettings();
-        var controller = Controller(repo, new Api { Token = "" });
-        var redirect = Assert.IsType<RedirectToActionResult>(await controller.RotateToken());
-        Assert.Equal(ContentCheckStatus.Unavailable, redirect.RouteValues["operationError"]);
-        Assert.Equal("old-token", repo.Settings.Token);
+        var repo = new StoredSettings();
+        // The connection can change after an administrator opened the form.
+        repo.SetToken("new-token");
+        var result = Assert.IsType<RedirectToActionResult>(Controller(repo).Save(false, Rows(" HTTPS://CMS.EXAMPLE:443/ ", "https://public.example/")));
+        Assert.Equal(true, result.RouteValues["saved"]);
+        Assert.Equal("new-token", repo.Current.Token);
+        Assert.False(repo.Current.Recheck);
+        Assert.True(repo.Current.LatestUI);
+        Assert.Null(repo.Current.ApiKey);
+        Assert.Null(repo.Current.ApiUser);
+        Assert.Equal("https://public.example", repo.Current.UrlMap["https://cms.example"]);
+    }
+
+    [Fact]
+    public void AutomaticConnectionPreservesMappingsAndRecheckChoice()
+    {
+        var repo = new StoredSettings();
+        repo.SetToken("new-token");
+        Assert.True(repo.Current.Recheck);
+        Assert.Equal("https://public.example", repo.Current.UrlMap["https://cms.example"]);
+        Assert.True(repo.Current.LatestUI);
+        Assert.Null(repo.Current.ApiKey);
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(1)", "https://public.example")]
+    [InlineData("https://cms.example", "file:///tmp/page")]
+    [InlineData("https://cms.example", "")]
+    [InlineData("", "https://public.example")]
+    [InlineData("https://user:secret@cms.example", "https://public.example")]
+    [InlineData("https://cms.example/path", "https://public.example")]
+    [InlineData("https://cms.example", "https://public.example/?token=value")]
+    [InlineData("https://cms.example", "https://public.example/#fragment")]
+    public void InvalidMappingsReturnSubmittedValuesWithoutChangingStoredSettings(string source, string target)
+    {
+        var repo = new StoredSettings();
+        var controller = Controller(repo);
+        var result = Assert.IsType<ViewResult>(controller.Save(false, Rows(source, target)));
+        Assert.False(controller.ModelState.IsValid);
+        Assert.Equal(0, repo.Writes);
+        Assert.True(repo.Current.Recheck);
+        var row = Assert.Single(Assert.IsType<SettingsViewModel>(result.Model).UrlMap);
+        Assert.Equal(source, row.Key);
+        Assert.Equal(target, row.Value);
+    }
+
+    [Fact]
+    public void DuplicateOriginsAreRejectedRatherThanSilentlyDiscarded()
+    {
+        var repo = new StoredSettings();
+        var controller = Controller(repo);
+        var rows = Rows("https://cms.example", "https://public.example");
+        rows.Add(new() { Key = "https://CMS.EXAMPLE:443/", Value = "https://other.example" });
+        Assert.IsType<ViewResult>(controller.Save(false, rows));
+        Assert.False(controller.ModelState.IsValid);
         Assert.Equal(0, repo.Writes);
     }
 
-    [Fact]
-    public async Task TokenRotationKeepsSettingsChangedWhileTheRequestIsPending()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EmptyMappingsCanBeRemoved(bool includeBlankRow)
     {
-        var repo = new MemorySettings();
-        var token = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var controller = Controller(repo, new Api { PendingToken = token.Task });
-        var rotation = controller.RotateToken();
-        repo.Settings.UrlMap["https://cms.example"] = "https://updated.example";
-        repo.Settings.ApiKey = "replacement";
-        token.SetResult("new-token");
-        await rotation;
-        Assert.Equal("replacement", repo.Settings.ApiKey);
-        Assert.Equal("https://updated.example", repo.Settings.UrlMap["https://cms.example"]);
+        var repo = new StoredSettings();
+        Controller(repo).Save(false, includeBlankRow ? Rows(" ", " ") : null);
+        Assert.Empty(repo.Current.UrlMap);
+        Assert.Equal("old-token", repo.Current.Token);
     }
 
     [Fact]
-    public void SavingBlankApiKeyPreservesExistingCredential()
+    public void ReadingFreshSettingsDoesNotWriteOrRequireAConnection()
     {
-        var repo = new MemorySettings();
-        var controller = Controller(repo);
-        controller.Save(true, "user", "", repo.Settings.UrlMap.ToArray());
-        Assert.Equal("key", repo.Settings.ApiKey);
-        Assert.Single(repo.Settings.UrlMap);
+        var repo = new StoredSettings { Current = null };
+        var settings = repo.GetSetting();
+        Assert.Null(settings.Token);
+        Assert.True(settings.LatestUI);
+        Assert.Empty(settings.UrlMap);
+        Assert.Equal(0, repo.Writes);
     }
 
-    [Fact]
-    public void SavingWithoutMappingsDoesNotThrow()
+    private static List<UrlMapping> Rows(string source, string target) => new() { new() { Key = source, Value = target } };
+    private static SiteimproveAdminController Controller(StoredSettings repo) => new(repo, new Helper(), DispatchProxy.Create<IModuleResourceResolver, Resources>());
+
+    public class Resources : DispatchProxy
     {
-        var repo = new MemorySettings();
-        Controller(repo).Save(false, "user", "replacement", null);
-        Assert.Empty(repo.Settings.UrlMap);
-        Assert.Equal("replacement", repo.Settings.ApiKey);
+        protected override object Invoke(MethodInfo method, object[] args) => "/Optimizely/SiteImprove.Optimizely.Plugin/SiteimproveAdmin";
     }
-
-    [Fact]
-    public void SettingsSubmissionDoesNotReadAndResubmitTheTokenOrStoredKey()
+    public class StoredSettings : SettingsRepository
     {
-        var repo = new MemorySettings { RejectReads = true };
-        Controller(repo).Save(false, "updated-user", "", null);
-        Assert.Equal("old-token", repo.Settings.Token);
-        Assert.Equal("key", repo.Settings.ApiKey);
-        Assert.Equal("updated-user", repo.Settings.ApiUser);
-    }
-
-    private static SiteimproveAdminController Controller(MemorySettings repo, Api api = null) =>
-        new(repo, new Helper(), null, api ?? new Api())
-        { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
-
-    private class Api : ISiteimproveApiClient
-    {
-        public string Token = "new-token";
-        public Task<string> PendingToken;
-        public Task<string> RequestTokenAsync(string version, System.Threading.CancellationToken ct) => PendingToken ?? Task.FromResult(Token);
-        public Task<ContentCheckStatus> GetPrepublishStatusAsync(string user, string key, System.Threading.CancellationToken ct) => Task.FromResult(ContentCheckStatus.Enabled);
-        public Task<ContentCheckStatus> EnablePrepublishCheckAsync(string user, string key, System.Threading.CancellationToken ct) => Task.FromResult(ContentCheckStatus.Enabled);
-        public Task<bool> RecheckAsync(string url, string token, System.Threading.CancellationToken ct) => Task.FromResult(true);
-    }
-
-    private class MemorySettings : ISettingsRepository
-    {
-        public Settings Settings = new() { Token = "old-token", Recheck = true, LatestUI = true,
-            ApiUser = "user", ApiKey = "key", UrlMap = new() { ["https://cms.example"] = "https://public.example" } };
+        public Settings Current = new() { Token = "old-token", Recheck = true, LatestUI = false,
+            ApiUser = "old-user", ApiKey = "old-key", UrlMap = new() { ["https://cms.example"] = "https://public.example" } };
         public int Writes;
-        public bool RejectReads;
-        public string GetToken() => Settings.Token;
-        public Settings GetSetting() => RejectReads ? throw new InvalidOperationException("Settings submissions must merge inside the repository.") : Settings;
-        public void SaveSettings(bool recheck, string apiUser, string apiKey, Dictionary<string, string> urlMap) =>
-            SaveToken(Settings.Token, recheck, Settings.LatestUI, apiUser,
-                string.IsNullOrWhiteSpace(apiKey) ? Settings.ApiKey : apiKey, urlMap);
-        public void SetToken(string token) => SaveToken(token, Settings.Recheck, Settings.LatestUI, Settings.ApiUser, Settings.ApiKey, Settings.UrlMap);
-        public void SaveToken(string token, bool recheck = false, bool latestUI = true, string apiUser = null,
-            string apiKey = null, Dictionary<string, string> urlMap = null)
-        {
-            Writes++;
-            Settings = new() { Token = token, Recheck = recheck, LatestUI = latestUI, ApiUser = apiUser, ApiKey = apiKey, UrlMap = urlMap };
-        }
+        protected override Settings LoadSettings() => Current;
+        protected override void Persist(Settings settings) { Current = settings; Writes++; }
     }
-    private class Helper : ISiteimproveHelper
+    public class Helper : ISiteimproveHelper
     {
         public string GetOptimizelyVersion() => "13.0.0";
         public string GetSiteimprovePluginVersion() => "5.0.0";

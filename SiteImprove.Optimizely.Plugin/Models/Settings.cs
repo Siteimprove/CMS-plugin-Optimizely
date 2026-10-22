@@ -13,6 +13,7 @@ namespace SiteImprove.Optimizely.Plugin.Models
 
         public bool Recheck { get; set; }
 
+        // Retained for existing DDS stores. These fields no longer control the SDK or access.
         public bool LatestUI { get; set; }
 
         public string ApiUser { get; set; }

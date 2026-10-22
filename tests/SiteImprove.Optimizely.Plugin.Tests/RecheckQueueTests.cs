@@ -91,7 +91,7 @@ public class RecheckQueueTests
             page.Property.Add("PageWorkStatus", new PropertyNumber((int)VersionStatus.Published));
             ((LoaderProxy)(object)loader).Page = page;
             _provider = new ServiceCollection().AddSingleton<ISettingsRepository>(Repo).AddSingleton<ISiteimproveApiClient>(Api)
-                .AddSingleton<ISiteimproveHelper>(new Helper()).AddSingleton(loader).BuildServiceProvider();
+                .AddSingleton<ISiteimproveConnection>(new Connection(Repo)).AddSingleton<ISiteimproveHelper>(new Helper()).AddSingleton(loader).BuildServiceProvider();
             Queue = new(_provider.GetRequiredService<IServiceScopeFactory>(), Options.Create(new RecheckQueueOptions
             { Capacity = capacity, MaxAttempts = 3, RetryDelay = TimeSpan.Zero }), NullLogger<SiteimproveRecheckQueue>.Instance);
         }
@@ -108,13 +108,16 @@ public class RecheckQueueTests
     }
     private class Repo : ISettingsRepository
     {
-        public void SaveSettings(bool recheck, string apiUser, string apiKey, Dictionary<string, string> urlMap) => throw new NotSupportedException();
+        public void SaveSettings(bool recheck, Dictionary<string, string> urlMap) => throw new NotSupportedException();
         public Settings Settings = new() { Token = "token", Recheck = true, LatestUI = true };
         public TaskCompletionSource Read = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Settings GetSetting() { Read.TrySetResult(); return Settings; }
         public string GetToken() => Settings.Token;
         public void SetToken(string token) => Settings.Token = token;
-        public void SaveToken(string token, bool recheck = false, bool latestUI = true, string user = null, string key = null, Dictionary<string, string> map = null) => throw new NotSupportedException();
+    }
+    private class Connection(Repo repo) : ISiteimproveConnection
+    {
+        public Task<string> GetTokenAsync(CancellationToken ct) => Task.FromResult(repo.GetToken());
     }
     private class Api : ISiteimproveApiClient
     {
@@ -122,14 +125,12 @@ public class RecheckQueueTests
         public Func<string, CancellationToken, Task<bool>> Send;
         public Task<bool> RecheckAsync(string url, string token, CancellationToken ct) { Interlocked.Increment(ref Calls); return Send(url, ct); }
         public Task<string> RequestTokenAsync(string version, CancellationToken ct) => throw new NotSupportedException();
-        public Task<ContentCheckStatus> GetPrepublishStatusAsync(string user, string key, CancellationToken ct) => throw new NotSupportedException();
-        public Task<ContentCheckStatus> EnablePrepublishCheckAsync(string user, string key, CancellationToken ct) => throw new NotSupportedException();
     }
     private class Helper : ISiteimproveHelper
     {
         public string GetExternalUrl(PageData page) => "https://public.example/page";
         public string GetPreviewUrl(PageData page) => null;
         public string GetOptimizelyVersion() => "13.0.0";
-        public string GetSiteimprovePluginVersion() => "5.0.0-alpha.7";
+        public string GetSiteimprovePluginVersion() => "5.0.0-alpha.8";
     }
 }

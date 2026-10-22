@@ -91,20 +91,22 @@ public class SiteimproveRecheckQueue : BackgroundService, ISiteimproveRecheckQue
         using var scope = _scopes.CreateScope();
         var settings = scope.ServiceProvider.GetRequiredService<ISettingsRepository>().GetSetting();
         if (!settings.Recheck) return;
-        if (string.IsNullOrWhiteSpace(settings.Token))
-        {
-            _logger.LogWarning("Siteimprove recheck skipped: an administrator must connect Siteimprove first.");
-            return;
-        }
         var loader = scope.ServiceProvider.GetRequiredService<IContentLoader>();
         if (!loader.TryGet<PageData>(request.ContentLink, new LanguageSelector(request.Language), out var page) ||
             !page.CheckPublishedStatus(PagePublishedStatus.Published)) return;
         var url = scope.ServiceProvider.GetRequiredService<ISiteimproveHelper>().GetExternalUrl(page);
         if (string.IsNullOrWhiteSpace(url)) return;
+        var connection = scope.ServiceProvider.GetRequiredService<ISiteimproveConnection>();
+        var token = await connection.GetTokenAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            _logger.LogWarning("Siteimprove recheck skipped: the connection is temporarily unavailable.");
+            return;
+        }
         var api = scope.ServiceProvider.GetRequiredService<ISiteimproveApiClient>();
         for (var attempt = 1; attempt <= _options.MaxAttempts; attempt++)
         {
-            if (await api.RecheckAsync(url, settings.Token, cancellationToken))
+            if (await api.RecheckAsync(url, token, cancellationToken))
             {
                 _logger.LogInformation("Siteimprove accepted a page recheck request.");
                 return;

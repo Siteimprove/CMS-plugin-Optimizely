@@ -2,7 +2,7 @@
 
 **Experimental CMS 13 port. Incomplete and not supported for production. No release date committed.**
 
-This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.7` identifies a test build; it does not announce a release or a support commitment.
+This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.8` identifies a test build; it does not announce a release or a support commitment.
 
 Visual Builder is the intended visual editing experience. Same-origin Alloy previews, real prepublish results and issue highlighting have been exercised in a local CMS 13 installation; see the [validation checkpoint](docs/cms13-local-validation.md) for the fixes, evidence and remaining checks. Cross-origin pre-publish checking and highlighting are not implemented.
 
@@ -31,7 +31,8 @@ Publication events, including scheduled publication, now enqueue recheck request
 - System.Text.Json replaces the implicit Newtonsoft dependency.
 - CMS 13 navigation TagHelpers and removal of the hardcoded legacy favicon path.
 - Separate `siteimprove:use` and `siteimprove:admin` policies; page URL lookup checks content read access.
-- POST-only token rotation, antiforgery validation, retained mappings, and replacement-only masked API key input.
+- Automatic background connection setup, antiforgery-protected settings saves and validated public URL mappings.
+- The v2 Siteimprove experience only. Prepublish access follows the signed-in account’s subscription and permissions; no API credentials or activation controls are shown in CMS settings.
 - Stale asynchronous page/token responses no longer overwrite the current author context.
 - Draft checks are disabled during navigation and unreadable/loading previews. Highlighting is invalidated by content and viewport changes and does not wrap authored text or images.
 - Settings reads perform no remote requests. Token connection and status actions are asynchronous, with distinct failure messages.
@@ -65,7 +66,7 @@ Generated packages are ignored by Git. The CMS 13 validation workflow runs the C
 To repeat the package and consumer checks locally after packing:
 
 ```sh
-python3 tests/verify-package.py artifacts/packages/SiteImprove.Optimizely.Plugin.5.0.0-alpha.7.nupkg --publish-host
+python3 tests/verify-package.py artifacts/packages/SiteImprove.Optimizely.Plugin.5.0.0-alpha.8.nupkg --publish-host
 ```
 
 See the [beta readiness checklist](docs/cms13-beta-readiness.md) for completed checks, remaining release gates and the proposed limited beta scope.

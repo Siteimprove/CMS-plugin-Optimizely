@@ -16,10 +16,24 @@
             margin: 0;
         }
 
-        input[type='text'] {
-            border: 0 !important;
-            background: none !important;
-        }
+        .siteimprove-settings { max-width: 960px; padding: 24px 32px; color: #242438; font: 16px/1.5 Arial, sans-serif; }
+        .siteimprove-settings h1 { margin-top: 0; }
+        .siteimprove-settings h2 { font-size: 20px; margin-top: 28px; }
+        .siteimprove-settings a { color: #254d98; text-decoration: underline; }
+        .settings-mappings { width: 100%; border-collapse: collapse; }
+        .settings-mappings th, .settings-mappings td { text-align: left; padding: 8px; vertical-align: top; }
+        .settings-mappings input { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #777; border-radius: 3px; font: inherit; background: white; color: inherit; }
+        .settings-checkbox { display: flex; align-items: center; gap: 8px; }
+        .settings-checkbox input { width: 20px; height: 20px; }
+        .settings-save { background: #254d98; color: white; padding: 10px 20px; border: 0; border-radius: 3px; font: inherit; cursor: pointer; }
+        .siteimprove-settings :focus-visible { outline: 3px solid #1b6bb4; outline-offset: 3px; }
+        .settings-saved { border-left: 4px solid #23733c; padding: 10px 16px; background: #edf7ef; }
+        .settings-errors { border-left: 4px solid #b32121; padding: 10px 16px; background: #fff1f1; }
+        .settings-errors h2 { margin-top: 0; }
+        .field-validation-error { display: block; color: #a11b1b; }
+        .settings-mappings .input-validation-error { border: 2px solid #a11b1b; }
+        .settings-version { color: #555; margin-top: 24px; }
+        @@media (max-width: 600px) { .siteimprove-settings { padding: 16px; } .settings-mappings th, .settings-mappings td { padding: 4px; } }
     </style>
 </head>
 <body class="epi-workspace">
