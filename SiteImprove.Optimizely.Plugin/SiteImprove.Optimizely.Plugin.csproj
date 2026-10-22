@@ -13,7 +13,7 @@
     <PackageProjectUrl>https://github.com/Siteimprove/CMS-plugin-Optimizely</PackageProjectUrl>
     <PackageIcon>icon.png</PackageIcon>
     <Description>Experimental Siteimprove plugin port for Optimizely CMS 13. Incomplete; not supported for production. No release date committed.</Description>
-    <Version>5.0.0-alpha.6</Version>
+    <Version>5.0.0-alpha.7</Version>
   </PropertyGroup>
 
   <ItemGroup>

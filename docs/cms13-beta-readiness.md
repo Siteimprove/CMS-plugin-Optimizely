@@ -1,6 +1,6 @@
 # CMS 13 beta readiness
 
-Checkpoint: 22 October 2026. Candidate: `5.0.0-alpha.6`. This remains an internal installation-test candidate. It is not a beta or GA release.
+Checkpoint: 22 October 2026. Candidate: `5.0.0-alpha.7`. This remains an internal installation-test candidate. It is not a beta or GA release.
 
 ## Proposed initial beta scope
 
@@ -21,8 +21,9 @@ The compatibility matrix must name the actual CMS, .NET, hosting and browser ver
 | Real Siteimprove workflow | A draft image issue was found, highlighted, corrected and removed by a completed recheck | Original workflow checkpoint used alpha.3/alpha.4 |
 | Real text highlights | Alpha.6 scanned the Swedish page variant; the SDK highlighted `publicerad` at the word's exact DOM range bounds without changing the paragraph HTML | One real text-offset example; nested-child cases also have fixtures |
 | Languages | English draft and Swedish published variant selected through the editor; the overlay uses the Swedish public URL and returns Swedish page results | Language-specific domains and fallback rules remain unverified |
-| Candidate replacement | Alpha.4 → alpha.5 → alpha.6 starts and retains the stored connection and existing draft | Not a CMS 12 database/settings upgrade test |
+| Candidate replacement | Alpha.4 → alpha.5 → alpha.6 starts and retains the stored connection and existing draft; final alpha.6 settings save succeeds on .NET 10.0.13 | Not a CMS 12 database/settings upgrade test |
 | Admin accessibility | Credential labels have unique targets, URL mapping fields have accessible names, and replacement-key guidance is associated with the field | Full keyboard, screen-reader and accessibility review remains open |
+| Hosted CI | [Validation for commit `7b6a5b7`](https://github.com/Siteimprove/CMS-plugin-Optimizely/actions/runs/39829121586) passed on Linux, including package/consumer checks | Repeat for the exact release candidate; this does not clear external acceptance gates |
 | Package validation | Resource version/source-byte checks and isolated-cache consumer restore/publish are automated | A consumer publish fixture does not initialize CMS services |
 
 The [earlier local validation record](cms13-local-validation.md) describes the initial installation and live image-correction evidence.
@@ -31,6 +32,7 @@ The [earlier local validation record](cms13-local-validation.md) describes the i
 
 - Settings submissions merge with the current token inside the repository lock, preserving concurrent token rotation and replacement-only API keys within one process. This is not a distributed concurrency guarantee.
 - Selecting the same page after a temporary context-request failure now retries, matching the editor guidance.
+- The private CMS host was moved to Microsoft's checksum-verified .NET/ASP.NET Core 10.0.13 runtimes. Temporary diagnostic code was removed from its built assembly.
 - Credential and URL mapping fields have accessible names. API key help explains that connection tokens and API credentials are separate.
 - The cryptography dependency and test XML dependency use Microsoft's patched `10.0.13` packages. The refreshed plugin dependency report still lists ImageSharp 3.1.12 advisories. No advisory warnings are suppressed.
 - GitHub Actions validates tests and candidate packaging with read-only repository permissions and no publishing credentials. Dependency reports are evidence for release review, not an automatic release approval.

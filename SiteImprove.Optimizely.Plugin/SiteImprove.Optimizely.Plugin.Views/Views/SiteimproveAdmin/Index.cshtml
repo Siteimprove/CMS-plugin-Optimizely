@@ -29,7 +29,7 @@
                                 <div class="epi-uif-card-content-area">
                                     <div class="edit-view__information__card">
                                         <div>
-                                            <div class="edit-view__information__card__detail"><span>Connection</span>@(string.IsNullOrWhiteSpace(Model.Token) ? "Not connected. Request a token to connect Siteimprove." : "Connected")</div>
+                                            <div class="edit-view__information__card__detail"><span>Connection: </span>@(string.IsNullOrWhiteSpace(Model.Token) ? "Not connected. Request a token to connect Siteimprove." : "Connected")</div>
                                         </div>
                                         <form action="@Model.PluginUrl/RotateToken" method="post">
                                             @Html.AntiForgeryToken()
@@ -45,7 +45,7 @@
                                 <div class="epi-uif-card-content-area">
                                     <div class="edit-view__information__card">
                                         <div>
-                                            <div class="edit-view__information__card__detail"><span>Pre-publish check</span>@Model.PrepublishStatus.Describe()</div>
+                                            <div class="edit-view__information__card__detail"><span>Pre-publish check: </span>@Model.PrepublishStatus.Describe()</div>
                                         </div>
 
                                         @if (Model.PrepublishStatus == ContentCheckStatus.Disabled)
