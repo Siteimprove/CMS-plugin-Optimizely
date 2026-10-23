@@ -161,7 +161,7 @@ define([
             }
             this.setAvailability(result.state === "ready");
             var messages = {
-                "cross-origin": "Draft checks and highlighting are unavailable because this preview is hosted separately from the CMS. Published-page insights can still be used.",
+                "cross-origin": "Draft checks and highlighting are unavailable because the preview is hosted separately from the CMS or its security policy prevents DOM access. Published-page insights can still be used.",
                 missing: "Open the page preview to run a draft check.",
                 mismatch: "Waiting for the preview to match the selected page, language and draft.",
                 loading: "Waiting for the draft preview to finish rendering."

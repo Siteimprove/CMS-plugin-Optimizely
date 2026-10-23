@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
-const source = readFileSync(path.join(__dirname, '../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.10/ClientResources/Scripts/siteimprove.js'), 'utf8');
+const source = readFileSync(path.join(__dirname, '../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.11/ClientResources/Scripts/siteimprove.js'), 'utf8');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function element() {
     return { children: [], style: {}, attributes: {}, setAttribute(k,v) {this.attributes[k]=v;},

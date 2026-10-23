@@ -1,6 +1,6 @@
 # CMS 13 candidate installation testing
 
-Candidate: `5.0.0-alpha.10`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
+Candidate: `5.0.0-alpha.11`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
 
 ## Prepare the environment
 
@@ -32,7 +32,7 @@ dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -
 Copy the package into a temporary local NuGet feed and add that feed to the host solution's development configuration. Keep that configuration outside version control. Install the exact candidate version in the CMS host project:
 
 ```sh
-dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.10
+dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.11
 ```
 
 Restore, build and publish the host into a clean directory. Check that its protected module ZIP and plugin assembly are present. Start CMS and confirm that both admin navigation and the author integration load without console or server errors.
@@ -42,6 +42,8 @@ Open Siteimprove from the CMS editor and sign in. Prepublish access follows the 
 Use Add mapping to create multiple rows before saving. Use Remove to delete a row, then save once to apply all changes. Mappings accept HTTP(S) origins with optional ports, without paths, queries, fragments or embedded credentials. Invalid or duplicate rows return an error and preserve all submitted values without saving. Removing a row updates the remaining field indexes before submission.
 
 ## Asynchronous same-origin previews
+
+Before moving to a hosted environment, follow the [CSP and preview integration checks](cms13-csp.md). The isolated plugin fixtures pass a stricter policy than the complete CMS editor currently permits; platform and hosted SDK requirements must be tested separately.
 
 The plugin waits for a matching URL, completed document/font loading and a quiet DOM. These checks cannot identify outstanding application data requests. An asynchronous frontend must explicitly hold checks until its selected draft is rendered:
 
@@ -96,7 +98,7 @@ python3 tests/cms13-http-acceptance.py \
   --base-url http://localhost:5013 \
   --sessions /private/path/sessions.json \
   --fixtures /private/path/fixtures.json \
-  --expected-version 5.0.0-alpha.10 \
+  --expected-version 5.0.0-alpha.11 \
   --output /private/path/http-acceptance.json
 ```
 

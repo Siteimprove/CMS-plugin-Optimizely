@@ -9,6 +9,8 @@ public class SettingsViewModel
     public string PluginVersion { get; set; }
     public string PluginUrl { get; set; }
     public string MappingScriptUrl { get; set; }
+    public string SettingsStyleUrl { get; set; }
+    public string ResourceNonce { get; set; }
 }
 
 public class UrlMapping

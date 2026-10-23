@@ -2,7 +2,7 @@
 
 **Experimental CMS 13 port. Incomplete and not supported for production. No release date committed.**
 
-This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.10` identifies a test build; it does not announce a release or a support commitment.
+This branch contains work toward CMS 13 compatibility, based on the existing CMS 12 plugin. It is intended for development and review. The local package version `5.0.0-alpha.11` identifies a test build; it does not announce a release or a support commitment.
 
 Visual Builder is the intended visual editing experience. Same-origin Alloy previews, real prepublish results and issue highlighting have been exercised in a local CMS 13 installation; see the [validation checkpoint](docs/cms13-local-validation.md) for the fixes, evidence and remaining checks. Cross-origin pre-publish checking and highlighting are not implemented.
 
@@ -66,10 +66,12 @@ Generated packages are ignored by Git. The CMS 13 validation workflow runs the C
 To repeat the package and consumer checks locally after packing:
 
 ```sh
-python3 tests/verify-package.py artifacts/packages/SiteImprove.Optimizely.Plugin.5.0.0-alpha.10.nupkg --publish-host
+python3 tests/verify-package.py artifacts/packages/SiteImprove.Optimizely.Plugin.5.0.0-alpha.11.nupkg --publish-host
 ```
 
 See the [beta readiness checklist](docs/cms13-beta-readiness.md) for completed checks, remaining release gates and the proposed limited beta scope.
+
+See the [CSP and preview integration notes](docs/cms13-csp.md) before deploying to a demo server. The plugin fixtures pass a policy without inline/eval exceptions; the complete CMS editor and hosted SDK have additional requirements.
 
 See [the installation testing guide](docs/cms13-testing.md) for candidate setup, readiness integration, test steps and rollback.
 

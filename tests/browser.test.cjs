@@ -5,25 +5,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {chromium} = require('playwright');
 let server, crossServer, browser, origin, crossOrigin;
-const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.10/ClientResources');
+const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.11/ClientResources');
+const strictCsp="default-src 'none'; script-src 'self'; style-src 'self'; style-src-attr 'none'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'self'";
 function handler(req,res) {
     const url = new URL(req.url,'http://localhost');
     res.setHeader('Content-Type','text/html; charset=utf-8');
-    if(url.pathname==='/plugin.js'){res.setHeader('Content-Type','text/javascript');res.end(fs.readFileSync(path.join(scripts,'Scripts/siteimprove.js')));return;}
-    if(url.pathname==='/styles.css'){res.setHeader('Content-Type','text/css');res.end(fs.readFileSync(path.join(scripts,'Styles/styles.css')));return;}
-    if(url.pathname==='/preview') {res.end('<!doctype html><html><head><title>Draft</title></head><body><p id="issue">Hello <strong>world</strong></p></body></html>');return;}
-    if(url.pathname.startsWith('/api/')) {
-        res.setHeader('Content-Type','application/json');
-        const action=url.pathname.slice(5);
-        if(action==='IsAuthorized'){res.end('true');return;}
-        if(action==='Token'){res.end('"test-token"');return;}
-        const [id,version]=url.searchParams.get('contentId').split('_');
-        res.end(JSON.stringify({url:origin+'/public/'+id,previewUrl:origin+`/preview?id=${id}&version=${version}&lang=${url.searchParams.get('locale')}`}));return;
-    }
-    res.end(`<!doctype html><html><head><title>Preview fixture</title><link rel="stylesheet" href="/styles.css"></head><body>
-        <iframe name="sitePreview" src="/preview?id=1&version=2&lang=en" style="width:800px;height:400px"></iframe>
-        <script>
-        window._si=[];
+    const strict=['/strict','/blocked-preview','/sandboxed-preview'].includes(url.pathname);
+    if(strict || url.searchParams.get('csp')==='strict') res.setHeader('Content-Security-Policy',url.pathname==='/blocked-preview'?strictCsp.replace("frame-src 'self'","frame-src 'none'"):strictCsp);
+    if(url.pathname==='/bootstrap.js'){res.setHeader('Content-Type','text/javascript');res.end(`        window._si=[];
         window.epi={routes:{getActionPath:x=>'/api/'+x.action}};
         window.define=(_,factory)=>{
             const declare=(_,methods)=>function(){Object.assign(this,methods);methods.constructor.call(this);};
@@ -34,9 +23,23 @@ function handler(req,res) {
             }};
             window.Plugin=factory(declare,topic,request,{},(v,fn)=>Promise.resolve(v).then(fn));
         };
-        </script><script src="/plugin.js"></script><script>
-        window.plugin=new Plugin();plugin.inherited=()=>{};plugin.getCurrentContext=()=>({id:'1_2',language:'en',capabilities:{isPage:true}});plugin.initialize();
-        </script></body></html>`);
+        `);return;}
+    if(url.pathname==='/start.js'){res.setHeader('Content-Type','text/javascript');res.end(`        window.plugin=new Plugin();plugin.inherited=()=>{};plugin.getCurrentContext=()=>({id:'1_2',language:'en',capabilities:{isPage:true}});plugin.initialize();
+`);return;}
+    if(url.pathname==='/plugin.js'){res.setHeader('Content-Type','text/javascript');res.end(fs.readFileSync(path.join(scripts,'Scripts/siteimprove.js')));return;}
+    if(url.pathname==='/styles.css'){res.setHeader('Content-Type','text/css');res.end(fs.readFileSync(path.join(scripts,'Styles/styles.css'))+'\niframe[name=sitePreview]{width:800px;height:400px}');return;}
+    if(url.pathname==='/preview') {res.end('<!doctype html><html><head><title>Draft</title></head><body><p id="issue">Hello <strong>world</strong></p></body></html>');return;}
+    if(url.pathname.startsWith('/api/')) {
+        res.setHeader('Content-Type','application/json');
+        const action=url.pathname.slice(5);
+        if(action==='IsAuthorized'){res.end('true');return;}
+        if(action==='Token'){res.end('"test-token"');return;}
+        const [id,version]=url.searchParams.get('contentId').split('_');
+        res.end(JSON.stringify({url:origin+'/public/'+id,previewUrl:origin+`/preview?id=${id}&version=${version}&lang=${url.searchParams.get('locale')}`}));return;
+    }
+    res.end(`<!doctype html><html><head><title>Preview fixture</title><link rel="stylesheet" href="/styles.css"></head><body>
+        <iframe name="sitePreview" src="/preview?id=1&version=2&lang=en${strict?'&csp=strict':''}" ${url.pathname==='/sandboxed-preview'?'sandbox="allow-scripts"':''}></iframe>
+        <script src="/bootstrap.js"></script><script src="/plugin.js"></script><script src="/start.js"></script></body></html>`);
 }
 async function listen() {const s=http.createServer(handler);await new Promise(resolve=>s.listen(0,'127.0.0.1',resolve));return s;}
 before(async()=>{
@@ -46,6 +49,39 @@ before(async()=>{
 });
 after(async()=>{if(browser)await browser.close();for(const s of [server,crossServer])if(s)await new Promise(resolve=>s.close(resolve));});
 async function page() {const p=await browser.newPage();await p.goto(origin);await p.waitForFunction(()=>plugin.checkAvailable===true);return p;}
+
+test('capture and element/text highlights work under CSP without inline scripts, inline styles or eval',async()=>{
+    const p=await browser.newPage();
+    try {
+        await p.addInitScript(()=>{window.cspViolations=[];document.addEventListener('securitypolicyviolation',e=>cspViolations.push(e.effectiveDirective));});
+        await p.goto(origin+'/strict');
+        await p.waitForFunction(()=>plugin.checkAvailable===true);
+        const f=p.frames().find(x=>x.name()==='sitePreview');
+        const before=await f.locator('body').innerHTML();
+        await p.evaluate(async()=>{await plugin.capturePreview();plugin.highlight({highlights:[{selector:'#issue'}]});});
+        const marker=f.locator('#siteimprove-highlight-layer > div').first();
+        assert.equal(await marker.evaluate(el=>getComputedStyle(el).borderTopWidth),'2px');
+        assert.ok((await marker.boundingBox()).width>0);
+        await p.evaluate(()=>plugin.highlight({highlights:[{selector:'#issue',offset:{start:6,length:5}}]}));
+        assert.ok((await marker.boundingBox()).width>0);
+        assert.equal(await f.locator('body').innerHTML(),before);
+        assert.deepEqual(await p.evaluate(()=>cspViolations),[]);
+        assert.deepEqual(await f.evaluate(()=>cspViolations),[]);
+    } finally {await p.close();}
+});
+
+test('CSP-blocked and sandboxed previews cannot be captured and explain the security restriction',async()=>{
+    for(const route of ['/blocked-preview','/sandboxed-preview']) {
+        const p=await browser.newPage();
+        try {
+            await p.goto(origin+route);
+            await p.waitForFunction(()=>plugin.expectedPreviewUrl && plugin.previewStatus!=='loading');
+            assert.equal(await p.evaluate(()=>plugin.checkAvailable),false);
+            assert.equal(await p.evaluate(()=>plugin.capturePreview().then(()=>false,()=>true)),true);
+            assert.match(await p.locator('.siteimprove-preview-status').innerText(),/security policy/);
+        } finally {await p.close();}
+    }
+});
 
 test('real DOM highlighting preserves authored HTML and supports text offsets',async()=>{
     const p=await page();

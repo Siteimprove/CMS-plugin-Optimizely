@@ -1,6 +1,6 @@
 # CMS 13 beta readiness
 
-Checkpoint: 23 October 2026. Candidate: `5.0.0-alpha.10`, built from `5a60a7830ee21aaa0753ebabad1840af7953fca6`. This remains an internal installation-test candidate. It is not a beta or GA release.
+Checkpoint: 23 October 2026. Candidate: `5.0.0-alpha.11`. This remains an internal installation-test candidate. It is not a beta or GA release.
 
 ## Proposed initial beta scope
 
@@ -16,7 +16,8 @@ The compatibility matrix must name the actual CMS, .NET, hosting and browser ver
 
 | Area | Evidence | Limit |
 | --- | --- | --- |
-| Automated regression suite | 35 C# checks, 18 JavaScript unit checks and 16 Chromium fixtures pass | Simulated CMS/SDK context in fixtures |
+| Automated regression suite | 35 C# checks, 18 JavaScript unit checks and 20 Chromium fixtures pass | Simulated CMS/SDK context in fixtures |
+| Content Security Policy | Capture/highlights and mapping controls pass an enforced fixture policy with no inline/eval exception; live settings render and save under the stricter host policy | The complete editor needs platform exceptions; see [CSP evidence and demo checks](cms13-csp.md) |
 | Real CMS installation | Alloy 2.0.1 with CMS 13.0.0, SQL Server 2022 and local ASP.NET Identity | Opti ID, Graph and Content Manager are not configured |
 | Real Siteimprove workflow | Initial image check/fix/recheck passed; alpha.10 completed a fresh draft check with no CMS API credentials, returning 5 accessibility and 10 SEO issue types | Image correction checkpoint used alpha.3/alpha.4; full browser and entitlement-denial coverage remains open |
 | Real text highlights | Alpha.6 scanned the Swedish page variant; the SDK highlighted `publicerad` at the word's exact DOM range bounds without changing the paragraph HTML | One real text-offset example; nested-child cases also have fixtures |
@@ -29,7 +30,7 @@ The compatibility matrix must name the actual CMS, .NET, hosting and browser ver
 
 The [earlier local validation record](cms13-local-validation.md) describes the initial installation and live image-correction evidence.
 
-The installed alpha.10 CI package has SHA256 `85f3eafac0584657a00046a27954ee0fd02bc47e92450cdedc5e9074b090a1b5`. Its plugin assembly and protected module were verified against the running host. Temporary local sign-in/route diagnostics were removed, the host was rebuilt and restarted, and all 53 HTTP checks passed again. Its live SDK scan reproduces the corrected highlight guidance. Test-account cookies, credentials, content and raw HTTP responses remain outside the repository.
+The preceding alpha.10 CI package has SHA256 `85f3eafac0584657a00046a27954ee0fd02bc47e92450cdedc5e9074b090a1b5`. Its plugin assembly and protected module were verified against the running host. Temporary local sign-in/route diagnostics were removed, the host was rebuilt and restarted, and all 53 HTTP checks passed again. Its live SDK scan reproduces the corrected highlight guidance. Alpha.11 additionally passes the 53 HTTP checks with CSP enforced. Test-account cookies, credentials, content and raw HTTP responses remain outside the repository.
 
 The public `https://cdn.siteimprove.net/cms/overlay-v2.js` reference sampled on 23 October has SHA256 `3569c47eff97839820f7ac334c377a1b2a36be0e7d84e8cadafc981fbfa5a5d4`. This records the CDN reference fetched for the checkpoint; it does not pin future SDK responses or prove every browser loaded identical cached bytes.
 
@@ -46,6 +47,7 @@ The earlier HTTP routing failure is resolved in the acceptance client: the local
 - The cryptography dependency and test XML dependency use Microsoft's patched `10.0.13` packages. The refreshed plugin dependency report still lists ImageSharp 3.1.12 advisories. No advisory warnings are suppressed.
 - GitHub Actions validates tests and candidate packaging with read-only repository permissions and no publishing credentials. Dependency reports are evidence for release review, not an automatic release approval.
 - The CI runner is pinned to Ubuntu 24.04 and browser installation has a five-minute timeout. The moving Ubuntu image repeatedly stalled downloading font packages from its mirror; the pinned run completed successfully.
+- Alpha.11 removes the settings page's inline stylesheet and unused Google Fonts link, and propagates the host nonce to its script/style tags. The stylesheet is resolved from the protected module, and restricted/sandboxed previews explain that browser security policy may prevent DOM access. Strict CSP capture, styling, mapping, nonce-only and denial fixtures now run in the normal browser suite.
 
 ## Gates before external beta
 

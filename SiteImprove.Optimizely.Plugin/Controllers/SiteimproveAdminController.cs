@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EPiServer.Framework.Modules;
+using EPiServer.Framework.ClientResources;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SiteImprove.Optimizely.Plugin.Helper;
@@ -14,7 +15,7 @@ namespace SiteImprove.Optimizely.Plugin.Controllers;
 [AutoValidateAntiforgeryToken]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class SiteimproveAdminController(ISettingsRepository settingsRepo, ISiteimproveHelper helper,
-    IModuleResourceResolver resources) : Controller
+    IModuleResourceResolver resources, ICspNonceService nonceService = null) : Controller
 {
     [ViewData]
     public string Title { get; set; } = "Siteimprove";
@@ -56,6 +57,8 @@ public class SiteimproveAdminController(ISettingsRepository settingsRepo, ISitei
     {
         model.PluginVersion = helper.GetSiteimprovePluginVersion();
         model.MappingScriptUrl = resources.ResolveClientPath(Constants.SiteImproveModuleName, "ClientResources/Scripts/settings.js");
+        model.SettingsStyleUrl = resources.ResolveClientPath(Constants.SiteImproveModuleName, "ClientResources/Styles/settings.css");
+        model.ResourceNonce = nonceService?.GetNonce();
         model.PluginUrl = resources.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin");
         return View("Index", model);
     }
