@@ -18,14 +18,14 @@ These checks do not establish CMS startup, Visual Builder compatibility, success
 
 ## Access changes
 
-The `siteimprove:admin` policy retains Administrators, WebAdmins, CmsAdmins and SiteimproveAdmins. The separate `siteimprove:use` policy also permits CmsEditors, WebEditors and SiteimproveEditors. Page URL lookup checks content read access. Actual Opti ID group mappings and direct endpoint access require live tests.
+The `siteimprove:admin` policy retains Administrators, WebAdmins, CmsAdmins and SiteimproveAdmins. The separate `siteimprove:use` policy also permits CmsEditors, WebEditors and SiteimproveEditors. Page URL lookup checks CMS content access, including its additional rights requirement for unpublished drafts. Direct endpoint access now passes 53 live HTTP checks with local Identity accounts; actual Opti ID group mappings still require staging tests.
 
 CMS settings require the admin policy and antiforgery validation. SDK v2 sign-in handles subscription and user permissions; legacy API activation/status calls and credential inputs have been removed. An internal connection identifier is provisioned asynchronously on demand, reused, and never shown in settings. A process-wide gate coalesces initial requests and throttles failures for one minute. Settings reads and resource discovery remain free of remote requests. Saving settings clears unused legacy API fields and normalizes the old UI preference; the resource provider unconditionally loads v2. DDS fields remain only for schema compatibility.
 
 ## Remaining work
 
 - Repeat the locally verified startup, assets, Razor views and navigation in a representative Opti ID/Graph staging installation.
-- Verify existing settings survive installation upgrades and test real author/admin permissions.
+- Verify production-shaped settings survive installation upgrades and repeat local author/admin permission checks with Opti ID.
 - Broaden the verified same-origin check/highlight/correction workflow across the supported browser and site matrix.
 - Build the cross-origin bridge only against a supported capture contract; validate message origins, revisions and stale-result handling.
 - Improve preview availability feedback and containing-page context for blocks and sections.
@@ -101,3 +101,9 @@ The dependency follow-up uses the vendor's [3.2.0 release](https://github.com/Si
 Automatic checks after publication are removed, including event subscriptions, queue registration and the recheck API client. The DDS preference remains only for schema compatibility and is cleared on writes. Manual checks in the hosted Siteimprove experience remain available.
 
 Add mapping creates another row immediately and focuses its first field. Remove deletes the selected row without submitting. A single settings save applies all changes. Remaining input names, accessible labels and error references are renumbered after deletion so removing a middle row does not lose later mappings. Regression fixtures use the production row template and script.
+
+### Highlight correction in 5.0.0-alpha.10
+
+A live alpha.9 scan returned a highlight match with zero rendered width and height. The plugin created an invisible marker and gave no explanation. Alpha.10 skips these bounds, shows guidance when no visible match remains, and clears the guidance when another issue highlights successfully. Each image match keeps its own scroll target. A real Chromium fixture covers hidden elements, hidden text ranges and a link containing both hidden and visible images, while checking that authored HTML stays unchanged.
+
+The repeatable HTTP acceptance client now passes 53 checks through the local CMS routes, including unpublished-draft access, read-only editor denial, admin-only settings, antiforgery, invalid input and settings preservation. See the [testing instructions](cms13-testing.md) for the private-session and synthetic-content requirements.

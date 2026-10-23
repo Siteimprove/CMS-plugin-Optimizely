@@ -219,16 +219,18 @@ define([
                 var element;
                 try { element = dom.querySelector(issue.selector); } catch (_) { return; }
                 if (!element) return;
-                var target = element;
                 var images = !issue.offset && element.querySelectorAll ? Array.from(element.querySelectorAll(":scope > img")) : [];
-                var rects = images.length ? images.map(function (img) { return img.getBoundingClientRect(); }) : [element.getBoundingClientRect()];
-                if (images.length) target = images[0];
+                var rects = (images.length ? images : [element]).map(function (target) {
+                    return { bounds: target.getBoundingClientRect(), target: target };
+                });
                 if (issue.offset) {
                     var range = this.textRange(dom, element, issue.offset);
                     if (!range) return;
-                    rects = Array.from(range.getClientRects());
+                    rects = Array.from(range.getClientRects()).map(function (bounds) { return { bounds: bounds, target: element }; });
                 }
-                rects.forEach(function (rect) {
+                rects.forEach(function (match) {
+                    var rect = match.bounds;
+                    if (rect.width <= 0 || rect.height <= 0) return;
                     var marker = dom.createElement("div");
                     marker.style.cssText = "position:absolute;box-sizing:border-box;border:2px solid #bd1230;background:rgba(189,18,48,.16)";
                     marker.style.left = (rect.left + dom.defaultView.scrollX) + "px";
@@ -236,13 +238,15 @@ define([
                     marker.style.width = rect.width + "px";
                     marker.style.height = rect.height + "px";
                     layer.appendChild(marker);
+                    first = first || match.target;
                 });
-                first = first || target;
             }, this);
-            if (!first) { this.setStatus("unmatched", "This issue could not be located in the preview. Run a new check."); return; }
+            if (!first) { this.setStatus("unmatched", "This issue has no visible match in the preview. It may refer to hidden content. Run a new check after changing the preview."); return; }
             // Keep decorations outside the observed body and framework-managed content nodes.
             dom.documentElement.appendChild(layer);
             this.highlightLayer = layer;
+            this.notice = null;
+            this.setStatus("ready", "");
             first.scrollIntoView({ block: "center", behavior: "smooth" });
         },
         textRange: function (dom, element, offset) {

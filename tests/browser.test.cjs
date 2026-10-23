@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {chromium} = require('playwright');
 let server, crossServer, browser, origin, crossOrigin;
-const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.9/ClientResources');
+const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.10/ClientResources');
 function handler(req,res) {
     const url = new URL(req.url,'http://localhost');
     res.setHeader('Content-Type','text/html; charset=utf-8');
@@ -58,6 +58,32 @@ test('real DOM highlighting preserves authored HTML and supports text offsets',a
         await f.evaluate(()=>document.querySelector('#issue').firstChild.textContent='Updated ');
         await p.waitForFunction(()=>plugin.lastCapture===null);
         assert.equal(await f.locator('#siteimprove-highlight-layer').count(),0);
+    } finally {await p.close();}
+});
+
+test('hidden matches show guidance and visible image matches clear it without empty markers',async()=>{
+    const p=await page();
+    try {
+        const f=p.frames().find(x=>x.name()==='sitePreview');
+        await f.evaluate(()=>{
+            document.body.innerHTML='<span id="hidden" style="display:none">Hidden text</span><a id="images" href="#"><img style="display:none" width="50" height="40" alt="Hidden"><img width="120" height="80" alt="Visible" src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%2280%22/%3E"></a>';
+        });
+        await p.waitForFunction(()=>plugin.checkAvailable===true);
+        const before=await f.locator('body').innerHTML();
+        await p.evaluate(async()=>{await plugin.capturePreview();});
+        for(const offset of [undefined,{start:0,length:6}]) {
+            await p.evaluate(offset=>plugin.highlight({highlights:[{selector:'#hidden',offset}]}),offset);
+            assert.equal(await f.locator('#siteimprove-highlight-layer').count(),0);
+            assert.match(await p.locator('.siteimprove-preview-status').innerText(),/no visible match/);
+        }
+        const notice=await p.locator('.siteimprove-preview-status').boundingBox();
+        assert.ok(notice.x+notice.width<=p.viewportSize().width-600,'Guidance must fit beside the desktop SDK panel.');
+        await p.evaluate(()=>plugin.highlight({highlights:[{selector:'#images'}]}));
+        assert.equal(await f.locator('#siteimprove-highlight-layer > div').count(),1);
+        assert.equal(await f.locator('#siteimprove-highlight-layer > div').evaluate(n=>parseFloat(n.style.width)),120);
+        assert.equal(await f.locator('#siteimprove-highlight-layer > div').evaluate(n=>parseFloat(n.style.height)),80);
+        assert.equal(await p.locator('.siteimprove-preview-status').innerText(),'');
+        assert.equal(await f.locator('body').innerHTML(),before);
     } finally {await p.close();}
 });
 

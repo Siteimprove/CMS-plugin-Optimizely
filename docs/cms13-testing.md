@@ -1,6 +1,6 @@
 # CMS 13 candidate installation testing
 
-Candidate: `5.0.0-alpha.9`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
+Candidate: `5.0.0-alpha.10`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
 
 ## Prepare the environment
 
@@ -32,7 +32,7 @@ dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -
 Copy the package into a temporary local NuGet feed and add that feed to the host solution's development configuration. Keep that configuration outside version control. Install the exact candidate version in the CMS host project:
 
 ```sh
-dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.9
+dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.10
 ```
 
 Restore, build and publish the host into a clean directory. Check that its protected module ZIP and plugin assembly are present. Start CMS and confirm that both admin navigation and the author integration load without console or server errors.
@@ -82,6 +82,27 @@ Compare plugin highlights with actual Siteimprove results. The local browser fix
 - Test Siteimprove sign-out and account/subscription denial in the SDK. No CMS credential field or activation control should appear. Test malformed connection responses, timeout/cancellation, outage throttling and recovery without administrator setup.
 - Disconnect/block Siteimprove temporarily. Editor resource loading must remain usable; asynchronous connection requests must finish within the configured timeout.
 - Confirm immediate and scheduled publication do not enqueue or send plugin recheck requests, including when an installation has a legacy enabled preference.
+
+## Repeatable HTTP acceptance checks
+
+`tests/cms13-http-acceptance.py` exercises the installed plugin through real HTTP routes. Run it only on a non-production installation with disposable test accounts and pages. It performs a no-op settings save and submits an invalid mapping; it verifies that stored mappings remain unchanged.
+
+Prepare four signed-in test sessions: `administrator`, `author`, `readOnly` and `unprivileged`. The administrator needs plugin settings access; the author needs plugin access and read/edit permission on the draft. The read-only editor needs plugin access and only Read permission on the published test page, without edit/create/publish rights. The unprivileged account must have no plugin role. The restricted page must allow the administrator and deny the other three accounts. Use a published Swedish variant as the second-language fixture.
+
+Keep the session JSON outside the repository with owner-only file permissions. Its keys are the four session names above; each value is an object containing that session's cookie-name/value pairs. Obtain sessions through the host's normal test-account sign-in flow. Never use a production account or commit cookies. The fixture JSON contains `englishPublished`, `englishDraft`, `swedishPublished` and `restricted`, each holding its exact CMS content reference, including work IDs for version-specific fixtures.
+
+```sh
+python3 tests/cms13-http-acceptance.py \
+  --base-url http://localhost:5013 \
+  --sessions /private/path/sessions.json \
+  --fixtures /private/path/fixtures.json \
+  --expected-version 5.0.0-alpha.10 \
+  --output /private/path/http-acceptance.json
+```
+
+Use `--module-path` when the protected module has a different URL prefix. The client sends `Accept-Encoding: gzip` and decodes gzip responses, matching the local Alloy host's browser routing behavior. Without that header, the local host returned 404 even for authorized administrator requests. The script requires a successful administrator/version positive control before treating negative results as evidence. Login/access-denied redirects must stay on the CMS host; 404 is never accepted as proof of access denial.
+
+The 53 checks cover role/content permissions, published versus unpublished access, exact draft/language context, non-cacheable responses, invalid references/languages, settings validation and persistence, antiforgery rejection, anonymous denial and removed legacy actions. Output contains check names and booleans, without session values or page HTML. A passing local run does not verify Opti ID group mappings or Siteimprove subscription entitlement.
 
 ## Rollback and feedback
 

@@ -8,7 +8,7 @@ const root = path.join(__dirname, '../SiteImprove.Optimizely.Plugin');
 const view = fs.readFileSync(path.join(root, 'SiteImprove.Optimizely.Plugin.Views/Views/SiteimproveAdmin/Index.cshtml'), 'utf8');
 // Exercise the actual row template and script with a representative settings response.
 const template = view.match(/<template id="mapping-template">([\s\S]*?)<\/template>/)[1];
-const script = fs.readFileSync(path.join(root, 'modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.9/ClientResources/Scripts/settings.js'));
+const script = fs.readFileSync(path.join(root, 'modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.10/ClientResources/Scripts/settings.js'));
 let server, browser, origin;
 before(async () => {
     server = http.createServer(async (req, res) => {
