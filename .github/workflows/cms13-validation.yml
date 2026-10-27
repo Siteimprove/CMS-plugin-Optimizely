@@ -28,7 +28,8 @@ jobs:
       - run: dotnet test SiteImprove.Optimizely.Plugin.sln -c Release
       - run: npm ci
       - run: npm test
-      - run: npx playwright install --with-deps chromium
+      # ubuntu-24.04 supplies the runtime libraries; these fixtures use headless Chromium.
+      - run: npx playwright install --only-shell chromium
         timeout-minutes: 5
       - run: npm run test:browser
       - run: dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -c Release -o artifacts/packages -p:ContinuousIntegrationBuild=true
