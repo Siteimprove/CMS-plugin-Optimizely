@@ -1,16 +1,24 @@
 # CMS 13 beta readiness
 
-Checkpoint: 23 October 2026. Candidate: `5.0.0-alpha.11`. This remains an internal installation-test candidate. It is not a beta or GA release.
+Release candidate: `5.0.0-beta.1`, prepared from the alpha.13 implementation for limited non-production evaluation. It adds the CMS 12 beta's shared-block fragment workflow and retains the quiet notification behavior from alpha.12. The CMS 12 missing-alt shared-block scan, persisted draft correction and recheck case has passed on CMS 13; broader acceptance remains incomplete. Alpha.13 remains installed on the Windows demo server. The beta package has a separate version and checksum; its GitHub validation does not retroactively make the alpha.13 live checks exact-package beta checks.
 
-## Proposed initial beta scope
+## 27 October candidate checks
+
+The alpha.13 candidate passed 35 C# checks, 60 JavaScript/Chromium checks and 53 HTTP acceptance checks against the private Mac CMS 13.0.0 host. The HTTP suite verified the installed version, role/content permissions, exact draft and language context, settings preservation and antiforgery rejection. Package inspection also passed. The package SHA256 is `ad28d359a2861411618120966493e23abea7082005e14b7329f12a8098435cb9`.
+
+The CMS 13.0.2 Windows demo update completed with a checksum check, deployment backup and homepage validation. The refreshed editor loads the authenticated SDK, clears page reports when a shared block is selected, and completed a fresh page draft check. Live block testing exposed an unconverted Alloy preview template: the old content-area DisplayFor helper rendered the preview headings but omitted the block content. The replacement uses CMS 13 property/item tag helpers and preserves each display tag. After the host fix, the real Siteimprove SDK scanned a distinct unpublished shared-block draft from All Properties. It detected one Level A missing image alternative. Saving the alternative and a new marker, reloading to verify persistence, and rechecking without publishing cleared Level A and reduced the accessibility count from 2 to 1. A separate visible-preview scan failed to start and highlighting is not yet counted as passed. See [Windows demo validation](cms13-demo-validation.md). The 148 automated checks and this real block case establish evidence for those paths; they do not establish full CMS 12/CMS 13 workflow parity.
+
+Historical checkpoint below: 23 October 2026, `5.0.0-alpha.11`. This remains internal validation evidence, not a beta or GA release.
+
+## Limited beta scope
 
 - CMS 13, .NET 10, one application and a server-rendered preview on the CMS origin.
 - Visual Builder page checks, element/text highlighting, correction and rechecking. Checks are advisory; they do not block publication.
-- All Properties guidance when the preview is unavailable.
-- Cross-origin draft checking/highlighting, standalone blocks/sections, custom asynchronous frontends and multiple applications are excluded until separately validated.
+- All Properties page checks require an open preview; shared-block checks can render a temporary editable preview on demand.
+- Shared-block fragment support passed the missing-alt scan/fix/recheck case from All Properties. A visible-preview scan failed to start and block highlighting remains unverified. Cross-origin draft checking/highlighting, inline blocks/sections, custom asynchronous frontends and multiple applications remain excluded until separately validated.
 - Automatic rechecks after publishing are removed. Publication has no plugin event handler, background queue or recheck API call.
 
-The compatibility matrix must name the actual CMS, .NET, hosting and browser versions before invitations are sent. The NuGet dependency range is not evidence that every CMS 13 release has been tested.
+The compatibility matrix must name the actual CMS, .NET, hosting and browser versions for each evaluation group; beta.1 documents the configurations exercised so far. The NuGet dependency range is not evidence that every CMS 13 release has been tested.
 
 ## Evidence available
 
@@ -49,7 +57,7 @@ The earlier HTTP routing failure is resolved in the acceptance client: the local
 - The CI runner is pinned to Ubuntu 24.04 and browser installation has a five-minute timeout. The moving Ubuntu image repeatedly stalled downloading font packages from its mirror; the pinned run completed successfully.
 - Alpha.11 removes the settings page's inline stylesheet and unused Google Fonts link, and propagates the host nonce to its script/style tags. The stylesheet is resolved from the protected module, and restricted/sandboxed previews explain that browser security policy may prevent DOM access. Strict CSP capture, styling, mapping, nonce-only and denial fixtures now run in the normal browser suite.
 
-## Gates before external beta
+## Outstanding qualification gates
 
 1. **Platform dependency resolution.** Obtain an Optimizely-supported resolution for the remaining ImageSharp advisories and retest the chosen platform combination. A refreshed vendor review identified the patched ImageSharp 3.2.0 backport within the CMS range; direct references require a Six Labors build-time license key. An isolated build failed for the missing key and its NuGet audit still reported advisories. Validate the licensed combination and reconcile current advisory data rather than overriding to 4.x. Also use a maintained, patched .NET host and refresh the full host audit. Do not override the CMS constraint or suppress warnings to claim readiness.
 2. **Representative authentication and services.** Provision a non-production CMS 13 environment with Opti ID and Graph configured. Optimizely documents both as mandatory for full CMS 13 functionality. Repeat the passing local HTTP acceptance cases under its editor/admin paths and group mappings. Local testing continues while that environment is unavailable.

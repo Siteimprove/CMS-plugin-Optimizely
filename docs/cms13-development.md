@@ -1,6 +1,6 @@
 # CMS 13 development status
 
-Experimental work; no release date or production support commitment.
+The CMS 13 beta is available as a limited GitHub prerelease for non-production evaluation. No production support commitment. See the [beta.1 release notes](releases/5.0.0-beta.1.md) for the current scope and known issues; the historical checkpoints below describe earlier development builds.
 
 ## Scope
 
@@ -43,7 +43,7 @@ Keep credentials in normal environment secret configuration, outside the reposit
 
 ## Release boundary
 
-Local experimental packages are for development testing only. Do not publish NuGet packages, create releases or describe CMS 13 as supported until live validation and maintainer approval are complete.
+Beta.1 is distributed through GitHub for isolated evaluation. It does not publish to NuGet.org or the Optimizely feed, and does not establish production support. Dependency resolution, representative identity/platform tests, unresolved author-workflow findings and release review remain qualification gates for a supported rollout.
 
 ## Code review checkpoint — 13 October 2026
 

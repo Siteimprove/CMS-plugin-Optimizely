@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
-const source = readFileSync(path.join(__dirname, '../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.11/ClientResources/Scripts/siteimprove.js'), 'utf8');
+const source = readFileSync(path.join(__dirname, '../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-beta.1/ClientResources/Scripts/siteimprove.js'), 'utf8');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function element() {
     return { children: [], style: {}, attributes: {}, setAttribute(k,v) {this.attributes[k]=v;},
@@ -48,7 +48,7 @@ test('cross-origin preview removes the check action and explains the limitation'
     await ready(env);
     assert.equal(callback(env),null);
     assert.equal(env.module.previewStatus,'cross-origin');
-    assert.match(env.module.statusElement.textContent,/hosted separately/);
+    assert.match(env.module.previewMessage,/hosted separately/);
 });
 
 test('missing, blank and loading previews have no check action',async()=>{
@@ -66,6 +66,52 @@ test('the exact page, draft and language must match the preview',async()=>{
 test('query parameter order and additional view parameters are accepted',async()=>{
     const env=load(preview('https://cms.example/preview?lang=en&version=2&id=1&device=mobile'));
     await ready(env);assert.equal(typeof callback(env),'function');
+});
+
+test('CMS preview mode can change without changing the selected draft',async()=>{
+    const env=load(preview('https://cms.example/preview?id=1&version=2&lang=en&epieditmode=false'));
+    env.module.contextChange({id:'1_2',language:'en'});
+    env.requests[0].resolve({url:'https://public.example/1',previewUrl:'https://cms.example/preview?id=1&version=2&lang=en&epieditmode=true'});
+    env.requests[1].resolve('token');await tick();env.advance(500);env.module.updateAvailability();
+    assert.equal(typeof callback(env),'function');
+    assert.equal(await callback(env)(),env.frame.contentWindow.document);
+});
+
+test('changing CMS preview mode never relaxes page, draft or language checks',async()=>{
+    for (const query of ['id=9&version=2&lang=en','id=1&version=1&lang=en','id=1&version=2&lang=da']) {
+        const env=load(preview('https://cms.example/preview?'+query+'&epieditmode=false'));
+        env.module.contextChange({id:'1_2',language:'en'});
+        env.requests[0].resolve({url:'https://public.example/1',previewUrl:'https://cms.example/preview?id=1&version=2&lang=en&epieditmode=true'});
+        env.requests[1].resolve('token');await tick();env.advance(500);env.module.updateAvailability();
+        assert.equal(callback(env),null);
+    }
+});
+
+test('preview lifecycle messages do not create notifications outside the plugin',()=>{
+    const env=load();
+    for (const state of ['loading','mismatch','missing','changed','stale','cross-origin','unavailable']) {
+        env.module.setStatus(state,'Preview guidance');
+        assert.equal(env.document.body.children.length,0);
+    }
+});
+
+test('missing or invalid edit-mode flags do not match an expected CMS preview',async()=>{
+    for (const suffix of ['', '&epieditmode=', '&epieditmode=other']) {
+        const env=load(preview('https://cms.example/preview?id=1&version=2&lang=en'+suffix));
+        await ready(env);
+        env.module.expectedPreviewUrl+='&epieditmode=true';
+        env.module.updateAvailability();
+        assert.equal(callback(env),null);
+        assert.equal(env.module.previewStatus,'mismatch');
+    }
+});
+
+test('a capture that becomes unavailable returns contextual guidance through its callback',async()=>{
+    const env=load();await ready(env);const check=callback(env);
+    env.frame.getClientRects=()=>[];
+    await assert.rejects(check(),/Open the page preview to run a draft check/);
+    assert.equal(callback(env),null);
+    assert.equal(env.document.body.children.length,0);
 });
 
 test('a quiet matching preview can be captured',async()=>{
@@ -106,6 +152,27 @@ test('late page and token responses cannot replace the current context',async()=
 test('a block selection clears context and does not fetch a standalone page',async()=>{
     const env=load();await ready(env);env.module.contextChange({id:'block',language:'en',capabilities:{isPage:false}});
     assert.equal(env.requests.length,2);assert.equal(callback(env),null);assert.equal(env.module.previewStatus,'no-page');
+});
+
+test('shared blocks use their editable preview without calling the page URL action',async()=>{
+    const env=load();
+    env.module.contextChange({id:'99_4',language:'en',capabilities:{isBlock:true},editablePreviewUrl:'/block?id=99_4&lang=en'});
+    assert.equal(env.requests.length,1);
+    assert.equal(env.requests[0].action,'Token');
+    env.requests[0].resolve('block-token');await tick();
+    assert.equal(typeof callback(env),'function');
+    assert.equal(env.module.expectedPreviewUrl,'https://cms.example/block?id=99_4&lang=en');
+    assert.equal(env.window._si.some(x=>x[0]==='input'),false);
+});
+
+test('a failed block token request cannot reuse the previous page token',async()=>{
+    const env=load();await ready(env);
+    env.module.contextChange({id:'99_4',language:'en',capabilities:{isBlock:true},editablePreviewUrl:'/block?id=99_4&lang=en'});
+    assert.equal(env.module.token,null);
+    env.requests[2].reject(new Error('offline'));await tick();
+    env.module.updateAvailability();
+    assert.equal(callback(env),null);
+    assert.equal(env.module.contextKey,null);
 });
 
 test('render mutations invalidate old highlights and require another quiet period',async()=>{

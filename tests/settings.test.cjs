@@ -11,8 +11,8 @@ const template = view.match(/<template id="mapping-template">([\s\S]*?)<\/templa
 const layout = fs.readFileSync(path.join(root, 'SiteImprove.Optimizely.Plugin.Views/Views/SiteimproveAdmin/_Layout.cshtml'), 'utf8');
 const mappingScript = view.match(/<script src="@Model.MappingScriptUrl"[^>]*><\/script>/)[0]
     .replace('@Model.MappingScriptUrl','/settings.js').replace('@Model.ResourceNonce','fixture-settings-nonce');
-const script = fs.readFileSync(path.join(root, 'modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.11/ClientResources/Scripts/settings.js'));
-const stylesPath = path.join(root, 'modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.11/ClientResources/Styles/settings.css');
+const script = fs.readFileSync(path.join(root, 'modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-beta.1/ClientResources/Scripts/settings.js'));
+const stylesPath = path.join(root, 'modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-beta.1/ClientResources/Styles/settings.css');
 let server, browser, origin;
 before(async () => {
     server = http.createServer(async (req, res) => {

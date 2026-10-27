@@ -1,6 +1,6 @@
 # CMS 13 candidate installation testing
 
-Candidate: `5.0.0-alpha.11`. This is an experimental installation-test build, not a supported beta release. No release date is committed.
+Candidate: `5.0.0-beta.1`. This is a limited GitHub prerelease for non-production evaluation. Review the [release notes and known issues](releases/5.0.0-beta.1.md) before installation.
 
 ## Prepare the environment
 
@@ -10,7 +10,7 @@ Prepare representative pages, at least two languages, a draft containing known i
 
 Start with a visible, server-rendered preview on the CMS origin. Cross-origin draft checks and highlighting are excluded. Multiple applications, custom headless routes and asynchronous frontends need separate verification.
 
-Resolve the CMS host's dependency advisory warnings before external beta testing. The clean CMS 13.0 package fixture currently reports ImageSharp advisories requiring an Optimizely-compatible resolution; see the development status.
+The CMS host's dependency advisory warnings remain unresolved in beta.1; use only an isolated evaluation environment with synthetic content. Resolve them before production use or a supported rollout. The clean CMS 13.0 package fixture currently reports ImageSharp advisories requiring an Optimizely-compatible resolution; see the development status.
 
 Record:
 
@@ -32,7 +32,7 @@ dotnet pack SiteImprove.Optimizely.Plugin/SiteImprove.Optimizely.Plugin.csproj -
 Copy the package into a temporary local NuGet feed and add that feed to the host solution's development configuration. Keep that configuration outside version control. Install the exact candidate version in the CMS host project:
 
 ```sh
-dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-alpha.11
+dotnet add path/to/CmsHost.csproj package SiteImprove.Optimizely.Plugin --version 5.0.0-beta.1
 ```
 
 Restore, build and publish the host into a clean directory. Check that its protected module ZIP and plugin assembly are present. Start CMS and confirm that both admin navigation and the author integration load without console or server errors.
@@ -70,10 +70,24 @@ Set the marker before every asynchronous update, including initial rendering, an
 6. Change pages rapidly during preview loading and during a check. No previous page should be captured or highlighted as the new page.
 7. Change language, draft version and viewport size. Verify context changes, unavailable states and stale-highlight protection.
 8. Switch to All Properties with the preview hidden. The draft-check action should disappear; open the preview to re-enable it.
-9. Select blocks/sections. Standalone checks are not yet supported; verify the guidance and record whether containing-page context needs improvement.
-10. Open a cross-origin preview. Draft checking must be unavailable with an explanation. Test published-page insights separately where its public URL resolves.
+9. Select media, inline block properties and unsupported sections. Checking must remain unavailable.
+10. Open a cross-origin preview. Draft checking must be unavailable. Test published-page insights separately where its public URL resolves.
+11. Toggle CMS editing and preview modes for the same draft. Both visible previews should support checking. Switching to All Properties should disable capture without showing corner notifications. Page, language and draft changes must still invalidate the previous result.
 
 Compare plugin highlights with actual Siteimprove results. The local browser fixtures test browser mechanics and simulated selectors; they do not validate the vendor's selector/text-offset contract.
+
+### Shared blocks
+
+Beta.1 ports the CMS 12 shared-block beta. Use a shared block with an editable preview template on the CMS origin; the CMS context must supply `editablePreviewUrl` or `editablePreviewUrlWithToken`. CMS 13 always uses the v2 SDK, so the CMS 12 Latest UI switch is not needed.
+
+1. Open a shared block directly. The panel should clear the previous page report and offer only Prepublish. No PageUrl request should be made for the block.
+2. In All Properties view, run a check and verify the current draft's distinctive text or image is captured as a fragment. The temporary `Block prepublish preview` iframe must disappear after SDK cleanup.
+3. Change draft and language during capture. The old capture must be cancelled and its preview removed. Run a new check and verify the new content.
+4. With a matching visible preview, check and highlight an issue. Hidden or removed temporary previews must never receive highlights.
+5. Return to a page and verify its normal report and page checks. Missing templates, media, inaccessible previews, redirects to another draft/origin and timeouts must not capture the editor or an old page.
+6. Complete a real Siteimprove block check, correct a draft issue, save and recheck without publishing. Verify results and persisted draft content on each intended test installation. The Windows demo case passed; broader acceptance remains open.
+
+Fragment checks do not establish accessibility in every containing page's layout. Automated coverage is in `tests/blocks.test.cjs` and runs with `npm run test:browser`; real CMS and SDK acceptance must be recorded separately.
 
 ## Admin, failure and publishing checks
 
@@ -98,7 +112,7 @@ python3 tests/cms13-http-acceptance.py \
   --base-url http://localhost:5013 \
   --sessions /private/path/sessions.json \
   --fixtures /private/path/fixtures.json \
-  --expected-version 5.0.0-alpha.11 \
+  --expected-version 5.0.0-beta.1 \
   --output /private/path/http-acceptance.json
 ```
 

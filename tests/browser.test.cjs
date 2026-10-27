@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {chromium} = require('playwright');
 let server, crossServer, browser, origin, crossOrigin;
-const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-alpha.11/ClientResources');
+const scripts = path.join(__dirname,'../SiteImprove.Optimizely.Plugin/modules/_protected/SiteImprove.Optimizely.Plugin_files/5.0.0-beta.1/ClientResources');
 const strictCsp="default-src 'none'; script-src 'self'; style-src 'self'; style-src-attr 'none'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'self'";
 function handler(req,res) {
     const url = new URL(req.url,'http://localhost');
@@ -50,6 +50,23 @@ before(async()=>{
 after(async()=>{if(browser)await browser.close();for(const s of [server,crossServer])if(s)await new Promise(resolve=>s.close(resolve));});
 async function page() {const p=await browser.newPage();await p.goto(origin);await p.waitForFunction(()=>plugin.checkAvailable===true);return p;}
 
+test('classic CMS preview mode checks the same draft without showing corner notices',async()=>{
+    const p=await page();
+    try {
+        await p.evaluate(()=>{
+            plugin.expectedPreviewUrl=location.origin+'/preview?id=1&version=2&lang=en&epieditmode=true';
+            document.querySelector('iframe[name="sitePreview"]').src='/preview?id=1&version=2&lang=en&epieditmode=false';
+        });
+        await p.waitForFunction(()=>plugin.checkAvailable===true && plugin.previewDocument.URL.includes('epieditmode=false'));
+        assert.equal(await p.evaluate(async()=>{const dom=await plugin.capturePreview();return dom.title;}),'Draft');
+        assert.equal(await p.locator('.siteimprove-preview-status').count(),0);
+        await p.evaluate(()=>document.querySelector('iframe[name="sitePreview"]').src='/preview?id=1&version=1&lang=en&epieditmode=false');
+        await p.waitForFunction(()=>plugin.previewStatus==='mismatch');
+        assert.equal(await p.evaluate(()=>plugin.checkAvailable),false);
+        assert.equal(await p.locator('.siteimprove-preview-status').count(),0);
+    } finally {await p.close();}
+});
+
 test('capture and element/text highlights work under CSP without inline scripts, inline styles or eval',async()=>{
     const p=await browser.newPage();
     try {
@@ -78,7 +95,7 @@ test('CSP-blocked and sandboxed previews cannot be captured and explain the secu
             await p.waitForFunction(()=>plugin.expectedPreviewUrl && plugin.previewStatus!=='loading');
             assert.equal(await p.evaluate(()=>plugin.checkAvailable),false);
             assert.equal(await p.evaluate(()=>plugin.capturePreview().then(()=>false,()=>true)),true);
-            assert.match(await p.locator('.siteimprove-preview-status').innerText(),/security policy/);
+            assert.match(await p.evaluate(()=>plugin.previewMessage),/security policy/);
         } finally {await p.close();}
     }
 });
@@ -110,15 +127,14 @@ test('hidden matches show guidance and visible image matches clear it without em
         for(const offset of [undefined,{start:0,length:6}]) {
             await p.evaluate(offset=>plugin.highlight({highlights:[{selector:'#hidden',offset}]}),offset);
             assert.equal(await f.locator('#siteimprove-highlight-layer').count(),0);
-            assert.match(await p.locator('.siteimprove-preview-status').innerText(),/no visible match/);
+            assert.match(await p.evaluate(()=>plugin.previewMessage),/no visible match/);
         }
-        const notice=await p.locator('.siteimprove-preview-status').boundingBox();
-        assert.ok(notice.x+notice.width<=p.viewportSize().width-600,'Guidance must fit beside the desktop SDK panel.');
+        assert.equal(await p.locator('.siteimprove-preview-status').count(),0);
         await p.evaluate(()=>plugin.highlight({highlights:[{selector:'#images'}]}));
         assert.equal(await f.locator('#siteimprove-highlight-layer > div').count(),1);
         assert.equal(await f.locator('#siteimprove-highlight-layer > div').evaluate(n=>parseFloat(n.style.width)),120);
         assert.equal(await f.locator('#siteimprove-highlight-layer > div').evaluate(n=>parseFloat(n.style.height)),80);
-        assert.equal(await p.locator('.siteimprove-preview-status').innerText(),'');
+        assert.equal(await p.evaluate(()=>plugin.previewMessage),'');
         assert.equal(await f.locator('body').innerHTML(),before);
     } finally {await p.close();}
 });
@@ -136,13 +152,13 @@ test('an old loaded frame cannot be checked after selecting another draft',async
     } finally {await p.close();}
 });
 
-test('a genuinely cross-origin frame disables draft checks with visible guidance',async()=>{
+test('a genuinely cross-origin frame disables draft checks without floating notifications',async()=>{
     const p=await page();
     try {
         await p.evaluate(url=>document.querySelector('iframe').src=url,crossOrigin+'/preview?id=1&version=2&lang=en');
         await p.waitForFunction(()=>plugin.previewStatus==='cross-origin');
         assert.equal(await p.evaluate(()=>_si.filter(x=>x[0]==='registerPrepublishCallback').at(-1)[1]),null);
-        assert.match(await p.locator('.siteimprove-preview-status').innerText(),/hosted separately/);
+        assert.match(await p.evaluate(()=>plugin.previewMessage),/hosted separately/);
     } finally {await p.close();}
 });
 
@@ -164,7 +180,21 @@ test('switching away from a visible preview removes draft checking',async()=>{
     try {
         await p.evaluate(()=>document.querySelector('iframe').style.display='none');
         await p.waitForFunction(()=>plugin.checkAvailable===false);
-        assert.match(await p.locator('.siteimprove-preview-status').innerText(),/Open the page preview/);
+        assert.match(await p.evaluate(()=>plugin.previewMessage),/Open the page preview/);
+    } finally {await p.close();}
+});
+
+test('a saved check callback rejects a hidden preview with guidance and no corner notice',async()=>{
+    const p=await page();
+    try {
+        const error=await p.evaluate(async()=>{
+            const callback=_si.filter(x=>x[0]==='registerPrepublishCallback').at(-1)[1];
+            document.querySelector('iframe[name="sitePreview"]').style.display='none';
+            try {await callback();return null;}catch(error){return error.message;}
+        });
+        assert.match(error,/Open the page preview to run a draft check/);
+        assert.equal(await p.evaluate(()=>plugin.checkAvailable),false);
+        assert.equal(await p.locator('.siteimprove-preview-status').count(),0);
     } finally {await p.close();}
 });
 
@@ -249,7 +279,8 @@ test('selecting the same page retries context after a temporary connection failu
         await p.goto(origin);
         await p.waitForFunction(()=>plugin.previewStatus==='unavailable');
         assert.equal(await p.evaluate(()=>plugin.checkAvailable),false);
-        assert.equal(await p.getByRole('status').innerText(),'Siteimprove is temporarily unavailable. Try again in a minute.');
+        assert.equal(await p.evaluate(()=>plugin.previewMessage),'Siteimprove is temporarily unavailable. Try again in a minute.');
+        assert.equal(await p.getByRole('status').count(),0);
         await p.unroute('**/api/Token');
         await p.evaluate(()=>plugin.contextChange({id:'1_2',language:'en',capabilities:{isPage:true}}));
         await p.waitForFunction(()=>plugin.checkAvailable===true);
