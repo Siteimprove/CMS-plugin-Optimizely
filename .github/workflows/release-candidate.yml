@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Package version matching the project at this ref (for example 4.3.5)'
+        description: 'Package version matching the project at this ref (for example 4.3.6)'
         required: true
         type: string
 permissions:
