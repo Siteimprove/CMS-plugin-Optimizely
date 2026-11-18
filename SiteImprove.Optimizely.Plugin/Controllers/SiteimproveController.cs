@@ -54,13 +54,13 @@ namespace SiteImprove.Optimizely.Plugin.Controllers
             try { CultureInfo.GetCultureInfo(locale); }
             catch (CultureNotFoundException) { return BadRequest(new { status = "invalid-language" }); }
 
-            if (!_contentLoader.TryGet<IContent>(reference, new LanguageSelector(locale), out var content))
+            if (!_contentLoader.TryGet<IContent>(reference, LanguageSelector.Fallback(locale, false), out var content))
                 return NotFound(new { status = "content-not-found" });
             if (!_accessEvaluator.HasAccess(content, User, AccessLevel.Read)) return StatusCode(403);
             if (content is not PageData page)
                 return Json(new { url = (string)null, isDomain = false, status = "no-page-context" });
 
-            var url = _siteimproveHelper.GetExternalUrl(page);
+            var url = _siteimproveHelper.GetExternalUrl(page, locale);
             return Json(new { url, previewUrl = _siteimproveHelper.GetPreviewUrl(page),
                 contentId = page.ContentLink.ToString(), language = page.Language.Name,
                 isDomain = false, status = url == null ? "no-public-url" : "ready" });

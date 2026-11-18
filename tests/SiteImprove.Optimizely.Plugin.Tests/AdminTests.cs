@@ -32,8 +32,9 @@ public class AdminTests
         var repo = new StoredSettings();
         // The connection can change after an administrator opened the form.
         repo.SetToken("new-token");
-        var result = Assert.IsType<RedirectToActionResult>(Controller(repo).Save(Rows(" HTTPS://CMS.EXAMPLE:443/ ", "https://public.example/")));
-        Assert.Equal(true, result.RouteValues["saved"]);
+        var result = Assert.IsType<RedirectResult>(Controller(repo).Save(Rows(" HTTPS://CMS.EXAMPLE:443/ ", "https://public.example/")));
+        // A conventional host route must not turn this into /SiteimproveAdmin outside the module path.
+        Assert.Equal("/Optimizely/SiteImprove.Optimizely.Plugin/SiteimproveAdmin?saved=true", result.Url);
         Assert.Equal("new-token", repo.Current.Token);
         Assert.False(repo.Current.Recheck);
         Assert.True(repo.Current.LatestUI);

@@ -162,7 +162,9 @@ def main():
     check('invalid mapping leaves stored settings intact', status == 200 and SettingsForm(html).mappings() == original)
     data = dict(original, __RequestVerificationToken=SettingsForm(html).antiforgery())
     status, headers, _ = admin.request(module + '/SiteimproveAdmin/Save', data)
-    check('valid antiforgery save accepted', status == 302 and 'saved=True' in headers.get('Location', ''))
+    location = headers.get('Location', '')
+    check('valid antiforgery save accepted', status == 302 and 'saved=true' in location.lower())
+    check('save returns to the module settings page', (module + '/SiteimproveAdmin?') in location)
     status, _, html = admin.request(module + '/SiteimproveAdmin')
     check('settings retained after save', status == 200 and SettingsForm(html).mappings() == original)
     for action in ('RotateToken', 'EnablePrepublishCheck'):

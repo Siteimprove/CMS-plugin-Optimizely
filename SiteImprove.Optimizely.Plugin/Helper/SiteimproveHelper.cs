@@ -41,11 +41,15 @@ namespace SiteImprove.Optimizely.Plugin.Helper
                 ?? optimizelyAssembly.GetName().Version.ToString(3);
         }
 
-        public string GetExternalUrl(PageData page)
+        public string GetExternalUrl(PageData page) => GetExternalUrl(page, null);
+
+        public string GetExternalUrl(PageData page, string language)
         {
             try
             {
-                var internalUrl = _urlResolver.GetUrl(page.ContentLink, page.Language.Name, new UrlResolverArguments
+                // Fallback content can have a different language from the editor's selected region.
+                var urlLanguage = string.IsNullOrEmpty(language) ? page.Language.Name : language;
+                var internalUrl = _urlResolver.GetUrl(page.ContentLink.ToReferenceWithoutVersion(), urlLanguage, new UrlResolverArguments
                 {
                     ContextMode = ContextMode.Default,
                     ForceCanonical = true,
@@ -65,7 +69,7 @@ namespace SiteImprove.Optimizely.Plugin.Helper
                     return null;
                 }
 
-                var siteUrl = site.GetPrimaryHost(page.Language)?.Url ?? site.Url;
+                var siteUrl = site.GetPrimaryHost(System.Globalization.CultureInfo.GetCultureInfo(urlLanguage))?.Url ?? site.Url;
                 if (siteUrl == null) return null;
 
                 var settings = _settingsRepo.GetSetting();
