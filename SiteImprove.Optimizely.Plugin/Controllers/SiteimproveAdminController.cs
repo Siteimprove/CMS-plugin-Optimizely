@@ -50,7 +50,8 @@ public class SiteimproveAdminController(ISettingsRepository settingsRepo, ISitei
         }
         if (!ModelState.IsValid) return SettingsView(new SettingsViewModel { UrlMap = rows });
         settingsRepo.SaveSettings(mappings);
-        return RedirectToAction(nameof(Index), new { saved = true });
+        // Host sites can register conventional routes that would win over the protected module route.
+        return Redirect(resources.ResolvePath(Constants.SiteImproveModuleName, "SiteimproveAdmin") + "?saved=true");
     }
 
     private ActionResult SettingsView(SettingsViewModel model)
