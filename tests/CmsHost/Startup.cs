@@ -87,15 +87,31 @@ public class Startup
                     .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
                 endpoints.MapGet("/test/block-errors", (BlockErrorLog log) => log.Snapshot())
                     .RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
-                endpoints.MapPost("/test/block", (HttpContext context, EPiServer.IContentRepository repository) =>
+                endpoints.MapPost("/test/block", (HttpContext context, EPiServer.IContentRepository repository,
+                    EPiServer.DataAbstraction.IContentSecurityRepository security) =>
                 {
-                    if (context.Request.Headers["X-Cms-Test"] != "block-regression") return Results.NotFound();
+                    var scenario = context.Request.Headers["X-Cms-Test"].ToString();
+                    if (scenario is not ("block-regression" or "block-prepublish")) return Results.NotFound();
                     var block = repository.GetDefault<RegressionBlock>(EPiServer.Core.ContentReference.GlobalBlockFolder);
-                    block.Text = "Synthetic block";
+                    block.Text = "Published block";
                     var content = (EPiServer.Core.IContent)block;
-                    content.Name = "Regression block";
+                    content.Name = scenario == "block-prepublish" ? "Prepublish scan block" : "Regression block";
                     var reference = repository.Save(content, EPiServer.DataAccess.SaveAction.Publish, EPiServer.Security.AccessLevel.NoAccess);
-                    return Results.Ok(new { contentId = reference.ToString() });
+                    // The fixture editor needs edit access to load unpublished block versions.
+                    var permissions = new EPiServer.Security.ContentAccessControlList { IsInherited = false };
+                    permissions.AddEntry(new EPiServer.Security.AccessControlEntry("WebEditors",
+                        EPiServer.Security.AccessLevel.Read | EPiServer.Security.AccessLevel.Edit,
+                        EPiServer.Security.SecurityEntityType.Role));
+                    security.Save(reference, permissions, EPiServer.Security.SecuritySaveType.Replace);
+                    var draft = (RegressionBlock)repository.Get<RegressionBlock>(reference).CreateWritableClone();
+                    draft.Text = "Synthetic block draft";
+                    if (scenario == "block-prepublish")
+                    {
+                        draft.IncludeTestImage = true;
+                        draft.TestMarker = "BLOCK-DRAFT-" + Guid.NewGuid().ToString("N");
+                    }
+                    var draftReference = repository.Save((EPiServer.Core.IContent)draft, EPiServer.DataAccess.SaveAction.Save | EPiServer.DataAccess.SaveAction.ForceNewVersion, EPiServer.Security.AccessLevel.NoAccess);
+                    return Results.Ok(new { contentId = draftReference.ToString(), publishedId = reference.ToString(), marker = draft.TestMarker });
                 }).RequireAuthorization(Constants.SiteImproveAuthorizationPolicy);
             }
             endpoints.MapGet("/test/ready", () => Seed.Ready ? Results.Ok() : Results.StatusCode(503));

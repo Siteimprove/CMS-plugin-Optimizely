@@ -34,3 +34,13 @@ SiteimproveAdmins is a custom group, where you can assign any group in your solu
 ### Build and integration tests
 
 See [the disposable build and CMS test setup](docs/testing.md) and [current validation results](docs/validation.md). Ordinary tests use a controlled Siteimprove overlay and do not validate real Siteimprove reports. Package publication remains a separate step.
+
+### Shared block prepublish beta
+
+With **Latest UI** enabled, shared blocks with an editable, same-origin HTML preview can run Prepublish checks independently of their containing pages. The plugin clears the previous page context and checks the block as a fragment. Switching back to a page restores its normal published-page view.
+
+The site must provide a block preview template. In All Properties view, the plugin renders the selected draft on demand and removes that temporary preview after capture. Blocks without an accessible preview, media and inline block properties are outside this beta. Existing Prepublish access is required.
+
+See [beta behavior and validation](docs/shared-block-prepublish-beta.md).
+
+For the private `4.3.5-beta.1` package, see [installation, acceptance and rollback](docs/releases/4.3.5-beta.1.md).

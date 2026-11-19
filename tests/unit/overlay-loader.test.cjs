@@ -20,6 +20,9 @@ for (const version of ['v1', 'latest', 'unexpected']) {
     assert.equal(scripts[0].async, true);
     assert.equal(scripts[0].src, `https://cdn.siteimprove.net/cms/overlay-${version === 'latest' ? 'latest' : 'v1'}.js`);
     assert.equal(context.window._si, pending);
-    assert.equal(pending.length, 1);
+    assert.equal(context.window.siteimproveBlockBetaEnabled, version === 'latest');
+    assert.equal(pending.length, version === 'latest' ? 2 : 1);
+    if (version === 'latest') assert.deepEqual(Array.from(pending[0]), ['setSession', null, null, 'Optimizely CMS']);
+    assert.deepEqual(pending.at(-1), ['input', 'https://example.invalid/']);
   });
 }

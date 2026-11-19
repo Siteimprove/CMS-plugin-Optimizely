@@ -7,4 +7,7 @@ namespace CmsHost;
 public class RegressionBlock : BlockData
 {
     public virtual string Text { get; set; } = "";
+    public virtual string TestMarker { get; set; } = "";
+    public virtual bool IncludeTestImage { get; set; }
+    public virtual string ImageAlternative { get; set; } = "";
 }

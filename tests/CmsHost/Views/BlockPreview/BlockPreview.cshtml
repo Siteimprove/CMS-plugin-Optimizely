@@ -1,0 +1,17 @@
+@using EPiServer.Web.Mvc.Html
+@model CmsHost.RegressionBlock
+<!doctype html>
+<html lang="en">
+<head><title>Block preview</title></head>
+<body><main><h1>Regression block</h1><p>@Html.PropertyFor(block => block.Text)</p>
+@if (!string.IsNullOrEmpty(Model.TestMarker))
+{
+    <p id="block-test-marker">@Model.TestMarker</p>
+}
+@if (Model.IncludeTestImage)
+{
+    <p>The illustration below identifies the block's test symbol.</p>
+    <img id="block-test-image" width="80" height="80" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' fill='blue'/%3E%3C/svg%3E" alt="@(string.IsNullOrEmpty(Model.ImageAlternative) ? null : Model.ImageAlternative)" />
+}
+</main></body>
+</html>

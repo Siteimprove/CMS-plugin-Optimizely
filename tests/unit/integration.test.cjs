@@ -6,19 +6,20 @@ const source = fs.readFileSync('SiteImprove.Optimizely.Plugin/modules/_protected
 
 function harness() {
   let module;
-  let preview = { contentWindow: { document: { page: 'first' } } };
+  let preview = { contentWindow: { document: { page: 'first', readyState: 'complete', body: {}, URL: 'http://localhost/preview' } } };
   const commands = [], calls = [], subscriptions = [];
   const request = { get: (path, options) => {
     calls.push({ path, options });
     return Promise.resolve(path === 'token' ? 'synthetic-token' : { url: `http://localhost/${options?.query?.contentId}`, isDomain: false });
   } };
-  const window = { _si: commands, epi: { routes: { getActionPath: x => x.action } } };
+  const window = { siteimproveBlockBetaEnabled: true, location: { href: 'http://localhost/editor', origin: 'http://localhost' }, _si: commands, epi: { routes: { getActionPath: x => x.action } } };
   vm.runInNewContext(source, {
-    window,
+    window, URL, Promise, setTimeout, clearTimeout,
     document: { querySelector: () => preview },
     define: (_, factory) => { module = factory({}, (_, body) => body, {}, {},
       { subscribe: (...args) => subscriptions.push(args) }, request, {}, (promise, fn) => Promise.resolve(promise).then(fn)); }
   });
+  module.getCurrentContext = () => Promise.resolve({ id: '10', language: 'en', capabilities: { isPage: true } });
   return { module, commands, calls, subscriptions, window, setPreview: p => { preview = p; } };
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -29,8 +30,8 @@ test('initial page context is sent once and ignores non-page content', async () 
   h.module.contextCurrent({ id: '10', language: 'en', capabilities: { isPage: true } });
   h.module.contextCurrent({ id: '10', language: 'en', capabilities: { isPage: true } });
   await flush();
-  assert.equal(h.commands.length, 1);
-  assert.deepEqual(Array.from(h.commands[0]).slice(0, 3), ['input', 'http://localhost/10', 'synthetic-token']);
+  assert.equal(h.commands.filter(c => c[0] === 'input').length, 1);
+  assert.deepEqual(Array.from(h.commands.find(c => c[0] === 'input')).slice(0, 3), ['input', 'http://localhost/10', 'synthetic-token']);
   assert.equal(h.calls[0].options.query.locale, 'en');
 });
 
@@ -38,7 +39,7 @@ test('navigation resolves the new page and passes its URL', async () => {
   const h = harness();
   h.module.contextChange({ id: '11', language: 'en', capabilities: { isPage: true } });
   await flush();
-  assert.equal(h.commands[0][1], 'http://localhost/11');
+  assert.equal(h.commands.find(c => c[0] === 'input')[1], 'http://localhost/11');
 });
 
 test('prepublish callback resolves the current iframe document on each call', async () => {
@@ -48,7 +49,7 @@ test('prepublish callback resolves the current iframe document on each call', as
   await flush();
   const callback = h.commands.find(c => c[0] === 'registerPrepublishCallback')[1];
   assert.equal(callback().page, 'first');
-  h.setPreview({ contentWindow: { document: { page: 'second' } } });
+  h.setPreview({ contentWindow: { document: { page: 'second', readyState: 'complete', body: {}, URL: 'http://localhost/second' } } });
   assert.equal(callback().page, 'second');
   h.setPreview(null);
   assert.equal(callback(), null);
@@ -59,7 +60,7 @@ test('highlight callback uses the current preview DOM', async () => {
   h.module.inherited = () => {};
   h.module.initialize();
   await flush();
-  h.setPreview({ contentWindow: { document: { page: 'second' } } });
+  h.setPreview({ contentWindow: { document: { page: 'second', readyState: 'complete', body: {}, URL: 'http://localhost/second' } } });
   h.commands.find(c => c[0] === 'onHighlight')[1]({ selector: 'h1' });
   assert.equal(h.commands.at(-1)[0], 'applyDefaultHighlighting');
   assert.equal(h.commands.at(-1)[2].page, 'second');
